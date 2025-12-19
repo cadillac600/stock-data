@@ -33,32 +33,67 @@
     -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
   }
 
-  /* ▼▼▼ アイコンの共通デザイン（18pxに変更！） ▼▼▼ */
-  .bbs-icon, .kabutan-icon, .x-icon {
-    width: 18px;         /* ★18pxに変更 */
-    height: 18px;        /* ★18pxに変更 */
-    object-fit: cover;   
-    border-radius: 3px;  /* サイズに合わせて角丸も少し小さく調整 */
+  /* ▼▼▼ 凡例（説明エリア）のデザイン【ここを追加！】 ▼▼▼ */
+  .legend-area {
+    display: flex;
+    flex-wrap: wrap; /* 折り返し許可 */
+    gap: 8px; /* アイテム間の隙間 */
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(60,64,67,0.1);
+    font-size: 11px;
+    color: #444;
+    border: 1px solid #dadce0;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    width: 48%; /* 2列にするため（隙間含めて調整） */
+    box-sizing: border-box;
+  }
+  
+  /* Xの説明だけは横長なので1行（幅100%）使う */
+  .legend-item.full-width {
+    width: 100%;
+    margin-top: 4px;
+    border-top: 1px dashed #eee; /* 薄い区切り線 */
+    padding-top: 6px;
+  }
+
+  .legend-icon-img {
+    width: 16px; /* 説明用なので少し控えめに */
+    height: 16px;
+    object-fit: cover;
+    border-radius: 3px;
+    margin-right: 6px;
     vertical-align: middle;
   }
 
-  /* ▼▼▼ 個別の位置調整 ▼▼▼ */
-  
-  /* X（Twitter）アイコン */
-  .x-icon {
-    display: block;      
-    margin: 4px auto 0;  
+  .legend-note {
+    color: #888;
+    margin-left: 5px;
+    font-size: 10px;
+  }
+  /* ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ */
+
+
+  /* ▼▼▼ アイコンの共通デザイン（データ内） ▼▼▼ */
+  .bbs-icon, .kabutan-icon, .x-icon {
+    width: 18px;         
+    height: 18px;        
+    object-fit: cover;   
+    border-radius: 3px;  
+    vertical-align: middle;
   }
 
-  /* Yahoo掲示板アイコン */
-  .bbs-icon {
-    margin-left: 5px;    /* 隙間も少し調整 */
-  }
+  /* 個別の位置調整 */
+  .x-icon { display: block; margin: 4px auto 0; }
+  .bbs-icon { margin-left: 5px; }
+  .kabutan-icon { margin-right: 5px; }
 
-  /* 株探アイコン */
-  .kabutan-icon {
-    margin-right: 5px;   /* 隙間も少し調整 */
-  }
 
   /* タブボタンのデザイン */
   .tabs {
@@ -127,37 +162,30 @@
     word-wrap: break-word;
   }
 
-  /* 銘柄名（4列目）は左寄せ */
   table.stock-table td:nth-child(4) {
     text-align: left;
     white-space: normal;
     padding-left: 5px;
   }
 
-  /* 縞模様 */
   table.stock-table tr:nth-child(even) {
     background-color: #fff0f5;
   }
 
-  /* 区切り線 */
   tr.date-changed td {
     border-top: 2px solid #888 !important; 
   }
 
-  /* 色指定 */
   .text-red { color: #d32f2f !important; font-weight: bold; }
   .text-blue { color: #1976d2 !important; font-weight: bold; }
 
   @media screen and (max-width: 600px) {
     table.stock-table { font-size: 11px; }
-    
     table.stock-table td:nth-child(1) {
       white-space: nowrap;
       font-size: 10px;
       letter-spacing: -0.5px;
     }
-
-    /* 列幅の微調整 */
     table.stock-table th:nth-child(1) { width: 15%; }
     table.stock-table th:nth-child(2) { width: 9%; }
     table.stock-table th:nth-child(3) { width: 14%; }
@@ -180,6 +208,17 @@
 
 <div class="tabs" id="monthTabs"></div>
 
+<div class="legend-area">
+  <div class="legend-item">
+    <img src="bbs.jpg" class="legend-icon-img"> 掲示板へ
+  </div>
+  <div class="legend-item">
+    <img src="kabu.jpg" class="legend-icon-img"> 株探ページへ
+  </div>
+  <div class="legend-item full-width">
+    <img src="x.jpg" class="legend-icon-img"> X検索 <span class="legend-note">※「コード 株」で検索</span>
+  </div>
+</div>
 <div class="stock-table-container">
   <div id="loading">データを読み込んでいます...</div>
   <table class="stock-table" id="stockTable" style="display:none;">
@@ -284,7 +323,6 @@
     rows.forEach((row, index) => { 
       let tr = document.createElement('tr');
       
-      // 区切り線ロジック
       if (index > 0) {
         const currentDate = row[0].toString();
         const prevDate = rows[index - 1][0].toString();
@@ -300,7 +338,6 @@
         let text = cell.toString();
 
         if (cellIndex === 0) {
-           // 日付整形
            text = text.replace(/^\d{4}\//, '').replace('(', ' ').replace(')', ''); 
         }
 
@@ -310,7 +347,67 @@
           td.classList.add("text-blue");
         }
 
-        // ▼▼▼ 各列の処理 ▼▼▼
         if (cellIndex === 0) {
-            // 【日付列】→ テキスト + Xアイコン
+            // 日付 + Xアイコン
             let dateDiv = document.createElement('div');
+            dateDiv.textContent = text;
+            td.appendChild(dateDiv);
+
+            let xLink = document.createElement('a');
+            xLink.href = `https://x.com/search?q=${stockCode}+株&f=live`;
+            xLink.target = "_blank";
+            xLink.rel = "noopener noreferrer";
+
+            let xIcon = document.createElement('img');
+            xIcon.src = "x.jpg"; 
+            xIcon.className = "x-icon"; 
+            
+            xLink.appendChild(xIcon);
+            td.appendChild(xLink);
+
+        } else if (cellIndex === 2) { 
+            // コード + Yahooアイコン
+            let link = document.createElement('a');
+            link.href = `https://finance.yahoo.co.jp/quote/${stockCode}.T/bbs`;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            link.textContent = text; 
+            
+            let icon = document.createElement('img');
+            icon.src = "bbs.jpg"; 
+            icon.className = "bbs-icon";
+            link.appendChild(icon);
+            td.appendChild(link);
+            
+        } else if (cellIndex === 3) {
+            // 銘柄名 + 株探アイコン
+            let link = document.createElement('a');
+            link.href = `https://kabutan.jp/stock/?code=${stockCode}`;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            
+            let icon = document.createElement('img');
+            icon.src = "kabu.jpg"; 
+            icon.className = "kabutan-icon";
+            
+            link.appendChild(icon);
+            link.appendChild(document.createTextNode(text));
+            td.appendChild(link);
+            
+        } else {
+            td.textContent = text;
+        }
+
+        if (cellIndex === 4 || cellIndex === 5) { 
+           td.style.textAlign = "right";
+        }
+
+        tr.appendChild(td);
+      });
+      tableBody.appendChild(tr);
+    });
+  }
+</script>
+
+</body>
+</html>
