@@ -33,14 +33,25 @@
     -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
   }
 
-  /* ▼▼▼ 掲示板アイコンのデザイン ▼▼▼ */
+  /* ▼▼▼ アイコンのデザイン設定（Yahoo掲示板用 & 株探用） ▼▼▼ */
+  
+  /* Yahoo掲示板アイコン（数字の後ろ） */
   .bbs-icon {
+    width: 16px;
+    height: 16px;
+    margin-left: 4px;
+    vertical-align: middle;
+    border-radius: 2px;
+    opacity: 0.8;
+  }
+
+  /* ★追加：株探アイコン（社名の前） */
+  .kabutan-icon {
     width: 16px;       /* アイコンの幅 */
     height: 16px;      /* アイコンの高さ */
-    margin-left: 4px;  /* 数字との隙間 */
-    vertical-align: middle; /* 文字の高さに合わせる */
-    border-radius: 2px; /* 角を少し丸める */
-    opacity: 0.8;      /* 少しだけ透明にして馴染ませる */
+    margin-right: 4px; /* 文字との隙間（右側） */
+    vertical-align: middle;
+    border-radius: 2px;
   }
 
   /* タブボタンのデザイン */
@@ -143,7 +154,7 @@
     /* 列幅の微調整 */
     table.stock-table th:nth-child(1) { width: 15%; }
     table.stock-table th:nth-child(2) { width: 9%; }
-    table.stock-table th:nth-child(3) { width: 13%; } /* コード列を少し広げる（アイコン分） */
+    table.stock-table th:nth-child(3) { width: 13%; }
     table.stock-table th:nth-child(4) { width: auto; }
     table.stock-table th:nth-child(5) { width: 15%; }
     table.stock-table th:nth-child(6) { width: 13%; }
@@ -292,8 +303,9 @@
           td.classList.add("text-blue");
         }
 
-        // ▼▼▼ リンク設定（修正箇所：bbs.jpgに変更） ▼▼▼
+        // ▼▼▼ リンク設定 ▼▼▼
         if (cellIndex === 2) { 
+            // 【コード番号の列】 → Yahoo!掲示板 + bbs.jpg
             let link = document.createElement('a');
             link.href = `https://finance.yahoo.co.jp/quote/${stockCode}.T/bbs`;
             link.target = "_blank";
@@ -302,23 +314,32 @@
             link.textContent = text; 
             
             let icon = document.createElement('img');
-            // ★ここを png から jpg に直しました！
-            icon.src = "bbs.jpg"; 
+            icon.src = "bbs.jpg"; // Yahooアイコン
             icon.className = "bbs-icon";
             link.appendChild(icon);
             
             td.appendChild(link);
             
         } else if (cellIndex === 3) {
-            // 銘柄名は株探へ
+            // 【銘柄名の列】 → ★修正：株探 + kabu.jpg（先頭）
             let link = document.createElement('a');
             link.href = `https://kabutan.jp/stock/?code=${stockCode}`;
             link.target = "_blank";
             link.rel = "noopener noreferrer";
-            link.textContent = text;
+            
+            // 1. 株探アイコンを作る
+            let icon = document.createElement('img');
+            icon.src = "kabu.jpg"; // GitHubのファイル名
+            icon.className = "kabutan-icon"; // 新しいCSSクラス
+            
+            // 2. リンクの中に「アイコン → テキスト」の順で入れる
+            link.appendChild(icon);
+            link.appendChild(document.createTextNode(text));
+            
             td.appendChild(link);
             
         } else {
+            // リンクじゃない列
             td.textContent = text;
         }
 
