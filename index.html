@@ -33,11 +33,11 @@
     -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
   }
 
-  /* ▼▼▼ 凡例（説明エリア）のデザイン【ここを追加！】 ▼▼▼ */
+  /* 凡例エリア */
   .legend-area {
     display: flex;
-    flex-wrap: wrap; /* 折り返し許可 */
-    gap: 8px; /* アイテム間の隙間 */
+    flex-wrap: wrap;
+    gap: 8px;
     margin-bottom: 12px;
     padding: 10px 12px;
     background-color: white;
@@ -51,20 +51,19 @@
   .legend-item {
     display: flex;
     align-items: center;
-    width: 48%; /* 2列にするため（隙間含めて調整） */
+    width: 48%; 
     box-sizing: border-box;
   }
   
-  /* Xの説明だけは横長なので1行（幅100%）使う */
   .legend-item.full-width {
     width: 100%;
     margin-top: 4px;
-    border-top: 1px dashed #eee; /* 薄い区切り線 */
+    border-top: 1px dashed #eee;
     padding-top: 6px;
   }
 
   .legend-icon-img {
-    width: 16px; /* 説明用なので少し控えめに */
+    width: 16px;
     height: 16px;
     object-fit: cover;
     border-radius: 3px;
@@ -77,10 +76,8 @@
     margin-left: 5px;
     font-size: 10px;
   }
-  /* ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ */
 
-
-  /* ▼▼▼ アイコンの共通デザイン（データ内） ▼▼▼ */
+  /* アイコンの共通デザイン */
   .bbs-icon, .kabutan-icon, .x-icon {
     width: 18px;         
     height: 18px;        
@@ -219,6 +216,7 @@
     <img src="x.jpg" class="legend-icon-img"> X検索 <span class="legend-note">※「コード 株」で検索</span>
   </div>
 </div>
+
 <div class="stock-table-container">
   <div id="loading">データを読み込んでいます...</div>
   <table class="stock-table" id="stockTable" style="display:none;">
@@ -235,7 +233,12 @@
   let allData = [];
 
   fetch(GAS_API_URL)
-    .then(response => response.json())
+    .then(response => {
+       if (!response.ok) {
+         throw new Error("通信エラー: " + response.status);
+       }
+       return response.json();
+    })
     .then(data => {
       const loading = document.getElementById('loading');
       
@@ -258,7 +261,10 @@
     })
     .catch(error => {
       console.error('Error:', error);
-      document.getElementById('loading').textContent = "読み込みエラーが発生しました";
+      // PCでエラーが見えるように画面に表示
+      document.getElementById('loading').innerHTML = 
+        `読み込みエラーが発生しました。<br><br>` +
+        `Chromeの場合は<br>「広告ブロック(AdBlock)」を<br>OFFにしてみてください。`;
     });
 
   function createMonthTabs(rows) {
@@ -354,7 +360,11 @@
             td.appendChild(dateDiv);
 
             let xLink = document.createElement('a');
-            xLink.href = `https://x.com/search?q=${stockCode}+株&f=live`;
+            
+            // ★Xリンクの修正点：日本語を正しくエンコードし、f=liveを確実に効かせる
+            const query = encodeURIComponent(stockCode + " 株");
+            xLink.href = `https://x.com/search?q=${query}&src=typed_query&f=live`;
+            
             xLink.target = "_blank";
             xLink.rel = "noopener noreferrer";
 
