@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>S高・S安 履歴</title>
 <style>
-  /* Google Fonts */
   @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
 
   body {
@@ -21,11 +20,39 @@
     font-size: 18px;
   }
 
-  /* 表のコンテナ */
+  /* ▼▼▼ タブボタンのデザイン ▼▼▼ */
+  .tabs {
+    display: flex;
+    overflow-x: auto; /* 横スクロール可能に */
+    white-space: nowrap;
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    gap: 8px; /* ボタン同士の間隔 */
+  }
+
+  .tab-button {
+    background-color: #fff;
+    border: 1px solid #dadce0;
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 13px;
+    cursor: pointer;
+    color: #5f6368;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+
+  .tab-button.active {
+    background-color: #e91e63; /* 選択中はピンク */
+    color: white;
+    border-color: #e91e63;
+  }
+  /* ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ */
+
   .stock-table-container {
     background: white;
     width: 100%;
-    overflow-x: hidden; /* 横スクロール禁止 */
+    overflow-x: hidden;
     border: 1px solid #dadce0;
     box-shadow: 0 1px 2px rgba(60,64,67,0.3);
     border-radius: 4px;
@@ -35,23 +62,21 @@
     width: 100%;
     border-collapse: collapse;
     font-size: 12px;
-    table-layout: fixed; /* レイアウト固定 */
+    table-layout: fixed;
   }
 
-  /* ヘッダー */
   table.stock-table th {
     background-color: #e91e63;
     color: white;
-    padding: 8px 2px; /* 左右の余白を極限まで減らす */
+    padding: 8px 2px;
     font-weight: bold;
     text-align: center;
     border: 1px solid #c2185b;
-    white-space: nowrap; /* ヘッダー改行禁止 */
+    white-space: nowrap;
   }
 
-  /* セル全般 */
   table.stock-table td {
-    padding: 8px 2px; /* 左右の余白を極限まで減らす */
+    padding: 8px 2px;
     border: 1px solid #e0e0e0;
     color: #333;
     vertical-align: middle;
@@ -59,48 +84,32 @@
     word-wrap: break-word;
   }
 
-  /* 4列目（銘柄名）の設定 */
   table.stock-table td:nth-child(4) {
     text-align: left;
     white-space: normal;
-    padding-left: 5px; /* 名前だけ少し読みやすく隙間を */
+    padding-left: 5px;
   }
 
-  /* 縞模様 */
   table.stock-table tr:nth-child(even) {
     background-color: #fff0f5;
   }
 
-  /* --- 色付け（優先度 最強） --- */
-  .text-red {
-    color: #d32f2f !important;
-    font-weight: bold;
-  }
-  .text-blue {
-    color: #1976d2 !important;
-    font-weight: bold;
-  }
+  .text-red { color: #d32f2f !important; font-weight: bold; }
+  .text-blue { color: #1976d2 !important; font-weight: bold; }
 
-  /* --- スマホ用の特別設定（ここを強化！） --- */
   @media screen and (max-width: 600px) {
-    table.stock-table {
-      font-size: 11px;
-    }
-    
-    /* 日付列（1列目）だけの特別設定 */
+    table.stock-table { font-size: 11px; }
     table.stock-table td:nth-child(1) {
-      white-space: nowrap;  /* ★絶対に改行させない */
-      font-size: 10px;      /* ★少し文字を小さく */
-      letter-spacing: -0.5px; /* ★文字の間隔を少し詰める */
+      white-space: nowrap;
+      font-size: 10px;
+      letter-spacing: -0.5px;
     }
-
-    /* 列幅の微調整（合計100%になるように配分） */
-    table.stock-table th:nth-child(1) { width: 15%; } /* 日付 */
-    table.stock-table th:nth-child(2) { width: 9%; }  /* 状態 */
-    table.stock-table th:nth-child(3) { width: 11%; } /* コード */
-    table.stock-table th:nth-child(4) { width: auto; } /* 銘柄名 */
-    table.stock-table th:nth-child(5) { width: 15%; } /* 現在値 */
-    table.stock-table th:nth-child(6) { width: 13%; } /* 前日比 */
+    table.stock-table th:nth-child(1) { width: 15%; }
+    table.stock-table th:nth-child(2) { width: 9%; }
+    table.stock-table th:nth-child(3) { width: 11%; }
+    table.stock-table th:nth-child(4) { width: auto; }
+    table.stock-table th:nth-child(5) { width: 15%; }
+    table.stock-table th:nth-child(6) { width: 13%; }
   }
 
   #loading {
@@ -115,6 +124,8 @@
 
 <h3>ストップ高・ストップ安 履歴</h3>
 
+<div class="tabs" id="monthTabs"></div>
+
 <div class="stock-table-container">
   <div id="loading">データを読み込んでいます...</div>
   <table class="stock-table" id="stockTable" style="display:none;">
@@ -124,76 +135,162 @@
 </div>
 
 <script>
-  // ▼▼▼ あなたのGAS URL (そのままでOK) ▼▼▼
+  // ▼▼▼ あなたのGAS URL ▼▼▼
   const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzvdeV4ek9JwVp9uM8es2DwJApOnkPu6VOw0TztKubOxjWFFxzjT__8iQPKzsEBzBvd/exec"; 
-  // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+  // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
+  let allData = []; // 全データを保存しておく変数
 
   fetch(GAS_API_URL)
     .then(response => response.json())
     .then(data => {
-      const tableHead = document.getElementById('tableHead');
-      const tableBody = document.getElementById('tableBody');
       const loading = document.getElementById('loading');
-      const table = document.getElementById('stockTable');
-
+      
       if (!data || data.length === 0) {
         loading.textContent = "データがありません";
         return;
       }
 
-      // 1. ヘッダー作成
+      // 1. ヘッダーとデータ本体に分ける
       const headers = data[0];
-      let headerRow = "<tr>";
-      headers.forEach(text => {
-        headerRow += `<th>${text}</th>`;
-      });
-      headerRow += "</tr>";
-      tableHead.innerHTML = headerRow;
+      let rows = data.slice(1);
 
-      // 2. データ行作成
-      data.slice(1).forEach(row => { 
-        let tr = document.createElement('tr');
-        
-        row.forEach((cell, index) => {
-          let td = document.createElement('td');
-          let text = cell.toString();
+      // ★ここでデータを「逆順（新しい順）」にする！
+      rows.reverse();
 
-          // 【日付の短縮処理】
-          if (index === 0) {
-             // 「2025/」を消す ＆ カッコ() を 半角スペース に置換する
-             // 例: 2025/12/18(木) → 12/18 木
-             text = text.replace(/^\d{4}\//, '')
-                        .replace('(', ' ')
-                        .replace(')', ''); 
-          }
+      // 全体変数に保存（あとでタブ切り替え時に使う）
+      allData = rows;
 
-          td.textContent = text;
+      // 2. 月ごとのタブを作成する機能
+      createMonthTabs(rows);
 
-          // 色分けロジック
-          if (text.includes("S高") || text.trim().startsWith("+")) {
-            td.classList.add("text-red");
-          } 
-          else if (text.includes("S安") || text.trim().startsWith("-")) {
-            td.classList.add("text-blue");
-          }
-
-          // 右寄せ調整
-          if (index === 4 || index === 5) { 
-             td.style.textAlign = "right";
-          }
-
-          tr.appendChild(td);
-        });
-        tableBody.appendChild(tr);
-      });
+      // 3. 最初の描画（最初は全データを表示、あるいは最新月を表示）
+      // ここでは「全データ」を表示するようにしていますが、
+      // 最新月だけにしたい場合は renderTable(filterDataByMonth(rows, '最新月文字列')); とします
+      renderTable(headers, rows);
 
       loading.style.display = 'none';
-      table.style.display = 'table';
+      document.getElementById('stockTable').style.display = 'table';
     })
     .catch(error => {
       console.error('Error:', error);
       document.getElementById('loading').textContent = "読み込みエラーが発生しました";
     });
+
+
+  // ▼ タブを作る関数
+  function createMonthTabs(rows) {
+    const tabsContainer = document.getElementById('monthTabs');
+    const months = new Set();
+
+    // データから「年月」を抽出してリスト化（例: "2025/12"）
+    rows.forEach(row => {
+      // 日付フォーマット "2025/12/18(木)" から "2025/12" を取り出す
+      const dateStr = row[0].toString();
+      const match = dateStr.match(/^(\d{4}\/\d{1,2})/); 
+      if (match) {
+        months.add(match[1]);
+      }
+    });
+
+    // 「すべて」ボタンを追加
+    const allButton = document.createElement('button');
+    allButton.className = 'tab-button active'; // 最初はアクティブ
+    allButton.textContent = 'すべて';
+    allButton.onclick = () => {
+      // ボタンの見た目を切り替え
+      updateActiveTab(allButton);
+      // 全データを表示（スプレッドシートから取得したヘッダーを再利用したいが、
+      // 簡易的に固定ヘッダーにするか、グローバル変数化が必要。
+      // 今回はrenderTable内で処理済みと仮定して、rowsだけ渡すロジックに修正が必要
+      // ※簡単にするため、ページリロードせずにフィルタだけ解除します
+      const tableBody = document.getElementById('tableBody');
+      tableBody.innerHTML = ''; // 一旦クリア
+      drawRows(allData); // 全データ描画
+    };
+    tabsContainer.appendChild(allButton);
+
+    // 月ごとのボタンを追加
+    months.forEach(month => {
+      const btn = document.createElement('button');
+      btn.className = 'tab-button';
+      // ボタンの表示名を "2025/12" から "12月" のように短くしてもOK
+      // ここではわかりやすくそのまま表示
+      btn.textContent = month; 
+      btn.onclick = () => {
+        updateActiveTab(btn);
+        // その月のデータだけ抽出
+        const filtered = allData.filter(row => row[0].toString().startsWith(month));
+        
+        // テーブルの中身を書き換え
+        const tableBody = document.getElementById('tableBody');
+        tableBody.innerHTML = '';
+        drawRows(filtered);
+      };
+      tabsContainer.appendChild(btn);
+    });
+  }
+
+  // ▼ タブのアクティブ色を切り替える関数
+  function updateActiveTab(clickedBtn) {
+    const buttons = document.querySelectorAll('.tab-button');
+    buttons.forEach(b => b.classList.remove('active'));
+    clickedBtn.classList.add('active');
+  }
+
+  // ▼ テーブルを描画する関数（メイン）
+  function renderTable(headers, rows) {
+    const tableHead = document.getElementById('tableHead');
+    
+    // ヘッダー作成
+    let headerRow = "<tr>";
+    headers.forEach(text => headerRow += `<th>${text}</th>`);
+    headerRow += "</tr>";
+    tableHead.innerHTML = headerRow;
+
+    // データ描画
+    drawRows(rows);
+  }
+
+  // ▼ 行データだけを描画する関数（フィルタ時にも使う）
+  function drawRows(rows) {
+    const tableBody = document.getElementById('tableBody');
+    
+    if (rows.length === 0) {
+      tableBody.innerHTML = '<tr><td colspan="6">データがありません</td></tr>';
+      return;
+    }
+
+    rows.forEach(row => { 
+      let tr = document.createElement('tr');
+      
+      row.forEach((cell, index) => {
+        let td = document.createElement('td');
+        let text = cell.toString();
+
+        // 日付短縮処理
+        if (index === 0) {
+           text = text.replace(/^\d{4}\//, '').replace('(', ' ').replace(')', ''); 
+        }
+
+        td.textContent = text;
+
+        // 色分け
+        if (text.includes("S高") || text.trim().startsWith("+")) {
+          td.classList.add("text-red");
+        } else if (text.includes("S安") || text.trim().startsWith("-")) {
+          td.classList.add("text-blue");
+        }
+
+        if (index === 4 || index === 5) { 
+           td.style.textAlign = "right";
+        }
+
+        tr.appendChild(td);
+      });
+      tableBody.appendChild(tr);
+    });
+  }
 </script>
 
 </body>
