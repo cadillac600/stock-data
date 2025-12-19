@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>S高・S安 履歴</title>
+
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" href="icon.png">
+<meta name="apple-mobile-web-app-title" content="S高履歴">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
 
@@ -23,11 +27,17 @@
   /* ▼▼▼ タブボタンのデザイン ▼▼▼ */
   .tabs {
     display: flex;
-    overflow-x: auto; /* 横スクロール可能に */
+    overflow-x: auto;
     white-space: nowrap;
     margin-bottom: 10px;
     padding-bottom: 5px;
-    gap: 8px; /* ボタン同士の間隔 */
+    gap: 8px;
+    /* スクロールバーを隠す（見た目スッキリ） */
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar {
+    display: none;
   }
 
   .tab-button {
@@ -43,12 +53,12 @@
   }
 
   .tab-button.active {
-    background-color: #e91e63; /* 選択中はピンク */
+    background-color: #e91e63;
     color: white;
     border-color: #e91e63;
   }
-  /* ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ */
 
+  /* ▼▼▼ 表のデザイン ▼▼▼ */
   .stock-table-container {
     background: white;
     width: 100%;
@@ -84,32 +94,40 @@
     word-wrap: break-word;
   }
 
+  /* 銘柄名（4列目）は左寄せ */
   table.stock-table td:nth-child(4) {
     text-align: left;
     white-space: normal;
     padding-left: 5px;
   }
 
+  /* 縞模様 */
   table.stock-table tr:nth-child(even) {
     background-color: #fff0f5;
   }
 
+  /* 色指定（強制適用） */
   .text-red { color: #d32f2f !important; font-weight: bold; }
   .text-blue { color: #1976d2 !important; font-weight: bold; }
 
+  /* ▼▼▼ スマホ最適化 ▼▼▼ */
   @media screen and (max-width: 600px) {
     table.stock-table { font-size: 11px; }
+    
+    /* 日付を1行に収めるための調整 */
     table.stock-table td:nth-child(1) {
       white-space: nowrap;
       font-size: 10px;
       letter-spacing: -0.5px;
     }
-    table.stock-table th:nth-child(1) { width: 15%; }
-    table.stock-table th:nth-child(2) { width: 9%; }
-    table.stock-table th:nth-child(3) { width: 11%; }
-    table.stock-table th:nth-child(4) { width: auto; }
-    table.stock-table th:nth-child(5) { width: 15%; }
-    table.stock-table th:nth-child(6) { width: 13%; }
+
+    /* 列幅の微調整 */
+    table.stock-table th:nth-child(1) { width: 15%; } /* 日付 */
+    table.stock-table th:nth-child(2) { width: 9%; }  /* 状態 */
+    table.stock-table th:nth-child(3) { width: 11%; } /* コード */
+    table.stock-table th:nth-child(4) { width: auto; } /* 銘柄名 */
+    table.stock-table th:nth-child(5) { width: 15%; } /* 現在値 */
+    table.stock-table th:nth-child(6) { width: 13%; } /* 前日比 */
   }
 
   #loading {
@@ -139,7 +157,7 @@
   const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzvdeV4ek9JwVp9uM8es2DwJApOnkPu6VOw0TztKubOxjWFFxzjT__8iQPKzsEBzBvd/exec"; 
   // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
-  let allData = []; // 全データを保存しておく変数
+  let allData = [];
 
   fetch(GAS_API_URL)
     .then(response => response.json())
@@ -151,22 +169,16 @@
         return;
       }
 
-      // 1. ヘッダーとデータ本体に分ける
       const headers = data[0];
       let rows = data.slice(1);
-
-      // ★ここでデータを「逆順（新しい順）」にする！
+      
+      // 最新の日付を上にする
       rows.reverse();
-
-      // 全体変数に保存（あとでタブ切り替え時に使う）
+      
       allData = rows;
 
-      // 2. 月ごとのタブを作成する機能
+      // タブを作って、最初のデータを表示
       createMonthTabs(rows);
-
-      // 3. 最初の描画（最初は全データを表示、あるいは最新月を表示）
-      // ここでは「全データ」を表示するようにしていますが、
-      // 最新月だけにしたい場合は renderTable(filterDataByMonth(rows, '最新月文字列')); とします
       renderTable(headers, rows);
 
       loading.style.display = 'none';
@@ -177,52 +189,40 @@
       document.getElementById('loading').textContent = "読み込みエラーが発生しました";
     });
 
-
-  // ▼ タブを作る関数
+  // タブ作成機能
   function createMonthTabs(rows) {
     const tabsContainer = document.getElementById('monthTabs');
     const months = new Set();
-
-    // データから「年月」を抽出してリスト化（例: "2025/12"）
+    
+    // データから年月(YYYY/MM)を抽出
     rows.forEach(row => {
-      // 日付フォーマット "2025/12/18(木)" から "2025/12" を取り出す
       const dateStr = row[0].toString();
       const match = dateStr.match(/^(\d{4}\/\d{1,2})/); 
-      if (match) {
-        months.add(match[1]);
-      }
+      if (match) months.add(match[1]);
     });
 
-    // 「すべて」ボタンを追加
+    // 「すべて」タブ
     const allButton = document.createElement('button');
-    allButton.className = 'tab-button active'; // 最初はアクティブ
+    allButton.className = 'tab-button active';
     allButton.textContent = 'すべて';
     allButton.onclick = () => {
-      // ボタンの見た目を切り替え
       updateActiveTab(allButton);
-      // 全データを表示（スプレッドシートから取得したヘッダーを再利用したいが、
-      // 簡易的に固定ヘッダーにするか、グローバル変数化が必要。
-      // 今回はrenderTable内で処理済みと仮定して、rowsだけ渡すロジックに修正が必要
-      // ※簡単にするため、ページリロードせずにフィルタだけ解除します
       const tableBody = document.getElementById('tableBody');
-      tableBody.innerHTML = ''; // 一旦クリア
-      drawRows(allData); // 全データ描画
+      tableBody.innerHTML = '';
+      drawRows(allData);
     };
     tabsContainer.appendChild(allButton);
 
-    // 月ごとのボタンを追加
+    // 各月のタブ
     months.forEach(month => {
       const btn = document.createElement('button');
       btn.className = 'tab-button';
-      // ボタンの表示名を "2025/12" から "12月" のように短くしてもOK
-      // ここではわかりやすくそのまま表示
       btn.textContent = month; 
       btn.onclick = () => {
         updateActiveTab(btn);
         // その月のデータだけ抽出
         const filtered = allData.filter(row => row[0].toString().startsWith(month));
         
-        // テーブルの中身を書き換え
         const tableBody = document.getElementById('tableBody');
         tableBody.innerHTML = '';
         drawRows(filtered);
@@ -231,28 +231,24 @@
     });
   }
 
-  // ▼ タブのアクティブ色を切り替える関数
+  // タブの色切り替え
   function updateActiveTab(clickedBtn) {
     const buttons = document.querySelectorAll('.tab-button');
     buttons.forEach(b => b.classList.remove('active'));
     clickedBtn.classList.add('active');
   }
 
-  // ▼ テーブルを描画する関数（メイン）
+  // テーブル全体の描画
   function renderTable(headers, rows) {
     const tableHead = document.getElementById('tableHead');
-    
-    // ヘッダー作成
     let headerRow = "<tr>";
     headers.forEach(text => headerRow += `<th>${text}</th>`);
     headerRow += "</tr>";
     tableHead.innerHTML = headerRow;
-
-    // データ描画
     drawRows(rows);
   }
 
-  // ▼ 行データだけを描画する関数（フィルタ時にも使う）
+  // 行の描画（フィルタ時にも使用）
   function drawRows(rows) {
     const tableBody = document.getElementById('tableBody');
     
@@ -268,20 +264,21 @@
         let td = document.createElement('td');
         let text = cell.toString();
 
-        // 日付短縮処理
+        // 日付整形: 2025/を削除, ()をスペースに, )を削除 → "12/18 木"
         if (index === 0) {
            text = text.replace(/^\d{4}\//, '').replace('(', ' ').replace(')', ''); 
         }
 
         td.textContent = text;
 
-        // 色分け
+        // 色分け設定
         if (text.includes("S高") || text.trim().startsWith("+")) {
           td.classList.add("text-red");
         } else if (text.includes("S安") || text.trim().startsWith("-")) {
           td.classList.add("text-blue");
         }
 
+        // 数値カラムの右寄せ
         if (index === 4 || index === 5) { 
            td.style.textAlign = "right";
         }
