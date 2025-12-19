@@ -19,11 +19,35 @@
     background-color: #f1f3f4;
   }
 
-  h3 {
-    color: #202124;
+  /* ▼▼▼ タイトルエリアのデザイン変更（ここを変えました！） ▼▼▼ */
+  .title-area {
+    display: flex;       /* 横並びにする */
+    align-items: center; /* 上下中央揃え */
     margin: 10px 0 15px 5px;
-    font-size: 18px;
   }
+
+  .title-area h3 {
+    margin: 0;           /* 余計な隙間を削除 */
+    color: #202124;
+    font-size: 18px;
+    line-height: 1;      /* 高さを揃える */
+  }
+
+  .title-img-left {
+    width: 24px;         /* 画像サイズ */
+    height: 24px;
+    margin-right: 8px;   /* 文字との隙間 */
+    object-fit: contain; /* 形を崩さない */
+  }
+
+  .title-img-right {
+    width: 24px;         /* 画像サイズ */
+    height: 24px;
+    margin-left: 8px;    /* 文字との隙間 */
+    object-fit: contain; /* 形を崩さない */
+  }
+  /* ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ */
+
 
   /* リンクのデザイン */
   a {
@@ -201,19 +225,22 @@
 </head>
 <body>
 
-<h3>ストップ高・ストップ安 履歴</h3>
-
+<div class="title-area">
+  <img src="sd.jpg" class="title-img-left">
+  <h3>ストップ高・ストップ安 履歴</h3>
+  <img src="ss.jpg" class="title-img-right">
+</div>
 <div class="tabs" id="monthTabs"></div>
 
 <div class="legend-area">
   <div class="legend-item">
-    <img src="bbs.jpg" class="legend-icon-img"> Y掲示板の銘柄ページへ
+    <img src="bbs.jpg" class="legend-icon-img"> 掲示板へ
   </div>
   <div class="legend-item">
-    <img src="kabu.jpg" class="legend-icon-img"> 株探の個別銘柄ページへ
+    <img src="kabu.jpg" class="legend-icon-img"> 株探ページへ
   </div>
-<div class="legend-item full-width">
-    <img src="x.jpg" class="legend-icon-img"> X検索 ※最新タブ「コード 株」で検索。スマホはタブ切替必要
+  <div class="legend-item full-width">
+    <img src="x.jpg" class="legend-icon-img"> X検索 <span class="legend-note">※最新タブ「コード番号 株」で検索されます</span>
   </div>
 </div>
 
@@ -261,7 +288,6 @@
     })
     .catch(error => {
       console.error('Error:', error);
-      // PCでエラーが見えるように画面に表示
       document.getElementById('loading').innerHTML = 
         `読み込みエラーが発生しました。<br><br>` +
         `Chromeの場合は<br>「広告ブロック(AdBlock)」を<br>OFFにしてみてください。`;
@@ -361,7 +387,6 @@
 
             let xLink = document.createElement('a');
             
-            // ★Xリンクの修正点：日本語を正しくエンコードし、f=liveを確実に効かせる
             const query = encodeURIComponent(stockCode + " 株");
             xLink.href = `https://x.com/search?q=${query}&src=typed_query&f=live`;
             
