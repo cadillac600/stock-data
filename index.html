@@ -33,7 +33,17 @@
     -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
   }
 
-  /* ▼▼▼ タブボタンのデザイン ▼▼▼ */
+  /* ▼▼▼ 掲示板アイコンのデザイン ▼▼▼ */
+  .bbs-icon {
+    width: 16px;       /* アイコンの幅 */
+    height: 16px;      /* アイコンの高さ */
+    margin-left: 4px;  /* 数字との隙間 */
+    vertical-align: middle; /* 文字の高さに合わせる */
+    border-radius: 2px; /* 角を少し丸める */
+    opacity: 0.8;      /* 少しだけ透明にして馴染ませる */
+  }
+
+  /* タブボタンのデザイン */
   .tabs {
     display: flex;
     overflow-x: auto;
@@ -64,7 +74,7 @@
     border-color: #e91e63;
   }
 
-  /* ▼▼▼ 表のデザイン ▼▼▼ */
+  /* 表のデザイン */
   .stock-table-container {
     background: white;
     width: 100%;
@@ -112,8 +122,7 @@
     background-color: #fff0f5;
   }
 
-  /* ▼▼▼【ここが新機能】日付が変わった時の区切り線スタイル ▼▼▼ */
-  /* 通常の線より濃いグレーで、少し太くする */
+  /* 区切り線 */
   tr.date-changed td {
     border-top: 2px solid #888 !important; 
   }
@@ -122,7 +131,6 @@
   .text-red { color: #d32f2f !important; font-weight: bold; }
   .text-blue { color: #1976d2 !important; font-weight: bold; }
 
-  /* ▼▼▼ スマホ最適化 ▼▼▼ */
   @media screen and (max-width: 600px) {
     table.stock-table { font-size: 11px; }
     
@@ -135,7 +143,7 @@
     /* 列幅の微調整 */
     table.stock-table th:nth-child(1) { width: 15%; }
     table.stock-table th:nth-child(2) { width: 9%; }
-    table.stock-table th:nth-child(3) { width: 11%; }
+    table.stock-table th:nth-child(3) { width: 13%; } /* コード列を少し広げる（アイコン分） */
     table.stock-table th:nth-child(4) { width: auto; }
     table.stock-table th:nth-child(5) { width: 15%; }
     table.stock-table th:nth-child(6) { width: 13%; }
@@ -248,7 +256,6 @@
     drawRows(rows);
   }
 
-  // ★ここを変更：区切り線ロジックを追加
   function drawRows(rows) {
     const tableBody = document.getElementById('tableBody');
     
@@ -260,16 +267,14 @@
     rows.forEach((row, index) => { 
       let tr = document.createElement('tr');
       
-      // ▼ 日付が変わったかチェックするロジック ▼
-      // 2行目以降(index > 0)で、かつ、1つ上の行(index-1)と日付が違う場合
+      // 区切り線ロジック
       if (index > 0) {
         const currentDate = row[0].toString();
         const prevDate = rows[index - 1][0].toString();
         if (currentDate !== prevDate) {
-           tr.classList.add("date-changed"); // CSSで線を太くするクラスを追加
+           tr.classList.add("date-changed");
         }
       }
-      // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
       const stockCode = row[2];
 
@@ -287,14 +292,32 @@
           td.classList.add("text-blue");
         }
 
-        // リンク化
-        if (cellIndex === 2 || cellIndex === 3) {
+        // ▼▼▼ リンク設定（修正箇所：bbs.jpgに変更） ▼▼▼
+        if (cellIndex === 2) { 
+            let link = document.createElement('a');
+            link.href = `https://finance.yahoo.co.jp/quote/${stockCode}.T/bbs`;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            
+            link.textContent = text; 
+            
+            let icon = document.createElement('img');
+            // ★ここを png から jpg に直しました！
+            icon.src = "bbs.jpg"; 
+            icon.className = "bbs-icon";
+            link.appendChild(icon);
+            
+            td.appendChild(link);
+            
+        } else if (cellIndex === 3) {
+            // 銘柄名は株探へ
             let link = document.createElement('a');
             link.href = `https://kabutan.jp/stock/?code=${stockCode}`;
             link.target = "_blank";
             link.rel = "noopener noreferrer";
             link.textContent = text;
             td.appendChild(link);
+            
         } else {
             td.textContent = text;
         }
