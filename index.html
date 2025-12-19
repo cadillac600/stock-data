@@ -33,36 +33,31 @@
     -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
   }
 
-  /* ▼▼▼ アイコンのデザイン設定 ▼▼▼ */
+  /* ▼▼▼ アイコンの共通デザイン（ここでサイズを統一！） ▼▼▼ */
+  .bbs-icon, .kabutan-icon, .x-icon {
+    width: 22px;         /* ★すべてのサイズを22pxに統一 */
+    height: 22px;        /* ★正方形にする */
+    object-fit: cover;   /* 画像を枠いっぱいに表示（歪み防止） */
+    border-radius: 4px;  /* 角を少し丸める */
+    vertical-align: middle;
+  }
+
+  /* ▼▼▼ 個別の位置調整 ▼▼▼ */
   
-  /* Yahoo掲示板アイコン */
-  .bbs-icon {
-    width: 16px;
-    height: 16px;
-    margin-left: 4px;
-    vertical-align: middle;
-    border-radius: 2px;
-    opacity: 0.8;
-  }
-
-  /* 株探アイコン */
-  .kabutan-icon {
-    width: 16px;
-    height: 16px;
-    margin-right: 4px;
-    vertical-align: middle;
-    border-radius: 2px;
-  }
-
-  /* ★追加：X（Twitter）アイコン（日付の下） */
+  /* X（Twitter）アイコン：日付の下、中央寄せ */
   .x-icon {
-    width: 18px;       /* 少しだけ大きく */
-    height: 18px;
-    margin-top: 4px;   /* 日付との隙間 */
-    border-radius: 4px;
-    display: block;    /* ブロック要素にして改行させる */
-    margin-left: auto; /* 中央寄せ用 */
-    margin-right: auto;/* 中央寄せ用 */
+    display: block;      /* 改行させる */
+    margin: 4px auto 0;  /* 上に隙間、左右は中央 */
+  }
+
+  /* Yahoo掲示板アイコン：コードの右 */
+  .bbs-icon {
+    margin-left: 6px;    /* 数字との隙間 */
+  }
+
+  /* 株探アイコン：銘柄名の左 */
+  .kabutan-icon {
+    margin-right: 6px;   /* 文字との隙間 */
   }
 
   /* タブボタンのデザイン */
@@ -165,7 +160,7 @@
     /* 列幅の微調整 */
     table.stock-table th:nth-child(1) { width: 15%; }
     table.stock-table th:nth-child(2) { width: 9%; }
-    table.stock-table th:nth-child(3) { width: 13%; } 
+    table.stock-table th:nth-child(3) { width: 14%; } /* アイコン分少し広く */
     table.stock-table th:nth-child(4) { width: auto; }
     table.stock-table th:nth-child(5) { width: 15%; }
     table.stock-table th:nth-child(6) { width: 13%; }
@@ -305,7 +300,7 @@
         let text = cell.toString();
 
         if (cellIndex === 0) {
-           // 日付の整形
+           // 日付整形
            text = text.replace(/^\d{4}\//, '').replace('(', ' ').replace(')', ''); 
         }
 
@@ -317,29 +312,25 @@
 
         // ▼▼▼ 各列の処理 ▼▼▼
         if (cellIndex === 0) {
-            // 【日付の列】→ 日付テキスト + Xアイコン
-            
-            // 1. 日付テキストを入れる
+            // 【日付列】→ テキスト + Xアイコン
             let dateDiv = document.createElement('div');
             dateDiv.textContent = text;
             td.appendChild(dateDiv);
 
-            // 2. Xアイコンのリンクを作る
             let xLink = document.createElement('a');
-            // ★ここがミソ！「コード 株」で検索し、「f=live」で最新タブを開くURL
             xLink.href = `https://x.com/search?q=${stockCode}+株&f=live`;
             xLink.target = "_blank";
             xLink.rel = "noopener noreferrer";
 
             let xIcon = document.createElement('img');
-            xIcon.src = "x.jpg"; // アップロードしたファイル名
-            xIcon.className = "x-icon"; // CSSで中央寄せ設定
+            xIcon.src = "x.jpg"; 
+            xIcon.className = "x-icon"; 
             
             xLink.appendChild(xIcon);
             td.appendChild(xLink);
 
         } else if (cellIndex === 2) { 
-            // 【コード列】 → Yahoo掲示板 + bbs.jpg
+            // 【コード列】 → Yahooアイコン
             let link = document.createElement('a');
             link.href = `https://finance.yahoo.co.jp/quote/${stockCode}.T/bbs`;
             link.target = "_blank";
@@ -353,7 +344,7 @@
             td.appendChild(link);
             
         } else if (cellIndex === 3) {
-            // 【銘柄名列】 → 株探 + kabu.jpg
+            // 【銘柄名列】 → 株探アイコン
             let link = document.createElement('a');
             link.href = `https://kabutan.jp/stock/?code=${stockCode}`;
             link.target = "_blank";
@@ -368,7 +359,6 @@
             td.appendChild(link);
             
         } else {
-            // その他の列
             td.textContent = text;
         }
 
