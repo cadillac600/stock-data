@@ -5,12 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>S高・S安 履歴</title>
 <style>
-  /* Google Fonts 読み込み */
+  /* Google Fonts */
   @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
 
   body {
     margin: 0;
-    padding: 10px; /* スマホ用に余白を少し減らす */
+    padding: 10px;
     font-family: 'Roboto', Helvetica, Arial, sans-serif;
     background-color: #f1f3f4;
   }
@@ -25,8 +25,7 @@
   .stock-table-container {
     background: white;
     width: 100%;
-    /* 横スクロールを出さない設定 */
-    overflow-x: hidden; 
+    overflow-x: hidden; /* 横スクロール禁止 */
     border: 1px solid #dadce0;
     box-shadow: 0 1px 2px rgba(60,64,67,0.3);
     border-radius: 4px;
@@ -35,35 +34,36 @@
   table.stock-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 12px; /* 基本サイズを少し小さめに */
-    table-layout: fixed; /* 列幅を固定してはみ出しを防ぐ */
+    font-size: 12px;
+    table-layout: fixed; /* レイアウト固定 */
   }
 
   /* ヘッダー */
   table.stock-table th {
     background-color: #e91e63;
     color: white;
-    padding: 8px 4px;
+    padding: 8px 2px; /* 左右の余白を極限まで減らす */
     font-weight: bold;
     text-align: center;
     border: 1px solid #c2185b;
-    white-space: nowrap; /* ヘッダーは折り返さない */
+    white-space: nowrap; /* ヘッダー改行禁止 */
   }
 
   /* セル全般 */
   table.stock-table td {
-    padding: 8px 4px;
+    padding: 8px 2px; /* 左右の余白を極限まで減らす */
     border: 1px solid #e0e0e0;
-    color: #333; /* 基本の色 */
+    color: #333;
     vertical-align: middle;
     text-align: center;
-    word-wrap: break-word; /* 長い文字は折り返す */
+    word-wrap: break-word;
   }
 
-  /* 4列目（銘柄名）だけは左寄せ＆折り返し許可 */
+  /* 4列目（銘柄名）の設定 */
   table.stock-table td:nth-child(4) {
     text-align: left;
-    white-space: normal; /* 折り返し許可 */
+    white-space: normal;
+    padding-left: 5px; /* 名前だけ少し読みやすく隙間を */
   }
 
   /* 縞模様 */
@@ -71,7 +71,7 @@
     background-color: #fff0f5;
   }
 
-  /* --- 色付け（優先度を最強にする !important を付与） --- */
+  /* --- 色付け（優先度 最強） --- */
   .text-red {
     color: #d32f2f !important;
     font-weight: bold;
@@ -81,23 +81,26 @@
     font-weight: bold;
   }
 
-  /* --- スマホ用の特別設定（画面幅が狭い時） --- */
+  /* --- スマホ用の特別設定（ここを強化！） --- */
   @media screen and (max-width: 600px) {
     table.stock-table {
-      font-size: 11px; /* さらに少し小さく */
-    }
-    table.stock-table th, 
-    table.stock-table td {
-      padding: 6px 2px; /* パディングを詰める */
+      font-size: 11px;
     }
     
-    /* 列幅の調整（合計100%） */
-    table.stock-table th:nth-child(1) { width: 14%; } /* 日付 */
-    table.stock-table th:nth-child(2) { width: 10%; } /* 状態 */
-    table.stock-table th:nth-child(3) { width: 12%; } /* コード */
-    table.stock-table th:nth-child(4) { width: auto; } /* 銘柄名（残り全部） */
+    /* 日付列（1列目）だけの特別設定 */
+    table.stock-table td:nth-child(1) {
+      white-space: nowrap;  /* ★絶対に改行させない */
+      font-size: 10px;      /* ★少し文字を小さく */
+      letter-spacing: -0.5px; /* ★文字の間隔を少し詰める */
+    }
+
+    /* 列幅の微調整（合計100%になるように配分） */
+    table.stock-table th:nth-child(1) { width: 15%; } /* 日付 */
+    table.stock-table th:nth-child(2) { width: 9%; }  /* 状態 */
+    table.stock-table th:nth-child(3) { width: 11%; } /* コード */
+    table.stock-table th:nth-child(4) { width: auto; } /* 銘柄名 */
     table.stock-table th:nth-child(5) { width: 15%; } /* 現在値 */
-    table.stock-table th:nth-child(6) { width: 14%; } /* 前日比 */
+    table.stock-table th:nth-child(6) { width: 13%; } /* 前日比 */
   }
 
   #loading {
@@ -155,24 +158,26 @@
           let td = document.createElement('td');
           let text = cell.toString();
 
-          // 【スマホ対策】日付から「西暦（2025/）」を消して短くする処理
+          // 【日付の短縮処理】
           if (index === 0) {
-             text = text.replace(/^\d{4}\//, ''); 
+             // 「2025/」を消す ＆ カッコ() を 半角スペース に置換する
+             // 例: 2025/12/18(木) → 12/18 木
+             text = text.replace(/^\d{4}\//, '')
+                        .replace('(', ' ')
+                        .replace(')', ''); 
           }
 
           td.textContent = text;
 
-          // 【色分けロジックの強化】
-          // S高 または +から始まる数字
+          // 色分けロジック
           if (text.includes("S高") || text.trim().startsWith("+")) {
             td.classList.add("text-red");
           } 
-          // S安 または -から始まる数字
           else if (text.includes("S安") || text.trim().startsWith("-")) {
             td.classList.add("text-blue");
           }
 
-          // 右寄せ調整（現在値と前日比）
+          // 右寄せ調整
           if (index === 4 || index === 5) { 
              td.style.textAlign = "right";
           }
