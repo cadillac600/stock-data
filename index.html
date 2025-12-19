@@ -33,9 +33,9 @@
     -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
   }
 
-  /* ▼▼▼ アイコンのデザイン設定（Yahoo掲示板用 & 株探用） ▼▼▼ */
+  /* ▼▼▼ アイコンのデザイン設定 ▼▼▼ */
   
-  /* Yahoo掲示板アイコン（数字の後ろ） */
+  /* Yahoo掲示板アイコン */
   .bbs-icon {
     width: 16px;
     height: 16px;
@@ -45,13 +45,24 @@
     opacity: 0.8;
   }
 
-  /* ★追加：株探アイコン（社名の前） */
+  /* 株探アイコン */
   .kabutan-icon {
-    width: 16px;       /* アイコンの幅 */
-    height: 16px;      /* アイコンの高さ */
-    margin-right: 4px; /* 文字との隙間（右側） */
+    width: 16px;
+    height: 16px;
+    margin-right: 4px;
     vertical-align: middle;
     border-radius: 2px;
+  }
+
+  /* ★追加：X（Twitter）アイコン（日付の下） */
+  .x-icon {
+    width: 18px;       /* 少しだけ大きく */
+    height: 18px;
+    margin-top: 4px;   /* 日付との隙間 */
+    border-radius: 4px;
+    display: block;    /* ブロック要素にして改行させる */
+    margin-left: auto; /* 中央寄せ用 */
+    margin-right: auto;/* 中央寄せ用 */
   }
 
   /* タブボタンのデザイン */
@@ -154,7 +165,7 @@
     /* 列幅の微調整 */
     table.stock-table th:nth-child(1) { width: 15%; }
     table.stock-table th:nth-child(2) { width: 9%; }
-    table.stock-table th:nth-child(3) { width: 13%; }
+    table.stock-table th:nth-child(3) { width: 13%; } 
     table.stock-table th:nth-child(4) { width: auto; }
     table.stock-table th:nth-child(5) { width: 15%; }
     table.stock-table th:nth-child(6) { width: 13%; }
@@ -294,6 +305,7 @@
         let text = cell.toString();
 
         if (cellIndex === 0) {
+           // 日付の整形
            text = text.replace(/^\d{4}\//, '').replace('(', ' ').replace(')', ''); 
         }
 
@@ -303,43 +315,60 @@
           td.classList.add("text-blue");
         }
 
-        // ▼▼▼ リンク設定 ▼▼▼
-        if (cellIndex === 2) { 
-            // 【コード番号の列】 → Yahoo!掲示板 + bbs.jpg
+        // ▼▼▼ 各列の処理 ▼▼▼
+        if (cellIndex === 0) {
+            // 【日付の列】→ 日付テキスト + Xアイコン
+            
+            // 1. 日付テキストを入れる
+            let dateDiv = document.createElement('div');
+            dateDiv.textContent = text;
+            td.appendChild(dateDiv);
+
+            // 2. Xアイコンのリンクを作る
+            let xLink = document.createElement('a');
+            // ★ここがミソ！「コード 株」で検索し、「f=live」で最新タブを開くURL
+            xLink.href = `https://x.com/search?q=${stockCode}+株&f=live`;
+            xLink.target = "_blank";
+            xLink.rel = "noopener noreferrer";
+
+            let xIcon = document.createElement('img');
+            xIcon.src = "x.jpg"; // アップロードしたファイル名
+            xIcon.className = "x-icon"; // CSSで中央寄せ設定
+            
+            xLink.appendChild(xIcon);
+            td.appendChild(xLink);
+
+        } else if (cellIndex === 2) { 
+            // 【コード列】 → Yahoo掲示板 + bbs.jpg
             let link = document.createElement('a');
             link.href = `https://finance.yahoo.co.jp/quote/${stockCode}.T/bbs`;
             link.target = "_blank";
             link.rel = "noopener noreferrer";
-            
             link.textContent = text; 
             
             let icon = document.createElement('img');
-            icon.src = "bbs.jpg"; // Yahooアイコン
+            icon.src = "bbs.jpg"; 
             icon.className = "bbs-icon";
             link.appendChild(icon);
-            
             td.appendChild(link);
             
         } else if (cellIndex === 3) {
-            // 【銘柄名の列】 → ★修正：株探 + kabu.jpg（先頭）
+            // 【銘柄名列】 → 株探 + kabu.jpg
             let link = document.createElement('a');
             link.href = `https://kabutan.jp/stock/?code=${stockCode}`;
             link.target = "_blank";
             link.rel = "noopener noreferrer";
             
-            // 1. 株探アイコンを作る
             let icon = document.createElement('img');
-            icon.src = "kabu.jpg"; // GitHubのファイル名
-            icon.className = "kabutan-icon"; // 新しいCSSクラス
+            icon.src = "kabu.jpg"; 
+            icon.className = "kabutan-icon";
             
-            // 2. リンクの中に「アイコン → テキスト」の順で入れる
             link.appendChild(icon);
             link.appendChild(document.createTextNode(text));
-            
             td.appendChild(link);
             
         } else {
-            // リンクじゃない列
+            // その他の列
             td.textContent = text;
         }
 
