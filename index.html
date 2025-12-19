@@ -5,80 +5,101 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>S高・S安 履歴</title>
 <style>
-  /* 全体の設定：Google FontsのRobotoを使う */
+  /* Google Fonts 読み込み */
   @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
 
   body {
     margin: 0;
-    padding: 20px;
-    font-family: 'Roboto', Arial, sans-serif;
-    background-color: #f1f3f4; /* 背景は薄いグレー */
+    padding: 10px; /* スマホ用に余白を少し減らす */
+    font-family: 'Roboto', Helvetica, Arial, sans-serif;
+    background-color: #f1f3f4;
   }
 
   h3 {
     color: #202124;
-    margin-bottom: 15px;
+    margin: 10px 0 15px 5px;
     font-size: 18px;
   }
 
-  /* 表の外枠（白いカード風） */
+  /* 表のコンテナ */
   .stock-table-container {
     background: white;
-    max-width: 100%;
-    overflow-x: auto;
+    width: 100%;
+    /* 横スクロールを出さない設定 */
+    overflow-x: hidden; 
     border: 1px solid #dadce0;
-    box-shadow: 0 1px 2px rgba(60,64,67,0.3); /* ほんのり影をつける */
+    box-shadow: 0 1px 2px rgba(60,64,67,0.3);
     border-radius: 4px;
   }
   
   table.stock-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 13px; /* スプレッドシートに近いサイズ */
-    white-space: nowrap; /* 勝手に折り返さない */
+    font-size: 12px; /* 基本サイズを少し小さめに */
+    table-layout: fixed; /* 列幅を固定してはみ出しを防ぐ */
   }
 
-  /* ヘッダーのデザイン（画像の色に合わせました） */
+  /* ヘッダー */
   table.stock-table th {
-    background-color: #e91e63; /* ★濃いピンク色 */
+    background-color: #e91e63;
     color: white;
-    padding: 10px 12px;
+    padding: 8px 4px;
     font-weight: bold;
     text-align: center;
-    border: 1px solid #c2185b; /* 枠線も同系色 */
+    border: 1px solid #c2185b;
+    white-space: nowrap; /* ヘッダーは折り返さない */
   }
 
-  /* セルのデザイン */
+  /* セル全般 */
   table.stock-table td {
-    padding: 8px 12px;
-    border: 1px solid #e0e0e0; /* 薄いグレーの線 */
-    color: #333;
+    padding: 8px 4px;
+    border: 1px solid #e0e0e0;
+    color: #333; /* 基本の色 */
     vertical-align: middle;
+    text-align: center;
+    word-wrap: break-word; /* 長い文字は折り返す */
   }
 
-  /* 1行ごとの縞模様（薄いピンク） */
+  /* 4列目（銘柄名）だけは左寄せ＆折り返し許可 */
+  table.stock-table td:nth-child(4) {
+    text-align: left;
+    white-space: normal; /* 折り返し許可 */
+  }
+
+  /* 縞模様 */
   table.stock-table tr:nth-child(even) {
-    background-color: #fff0f5; /* ★薄いピンク色 */
+    background-color: #fff0f5;
   }
 
-  /* マウスを乗せた時に少し色を変える */
-  table.stock-table tr:hover {
-    background-color: #fce4ec;
-  }
-
-  /* S高・プラスの文字色 */
+  /* --- 色付け（優先度を最強にする !important を付与） --- */
   .text-red {
-    color: #d32f2f; /* Googleっぽい赤 */
+    color: #d32f2f !important;
     font-weight: bold;
   }
-
-  /* S安・マイナスの文字色 */
   .text-blue {
-    color: #1976d2; /* Googleっぽい青 */
+    color: #1976d2 !important;
     font-weight: bold;
   }
 
-  /* ローディング表示 */
+  /* --- スマホ用の特別設定（画面幅が狭い時） --- */
+  @media screen and (max-width: 600px) {
+    table.stock-table {
+      font-size: 11px; /* さらに少し小さく */
+    }
+    table.stock-table th, 
+    table.stock-table td {
+      padding: 6px 2px; /* パディングを詰める */
+    }
+    
+    /* 列幅の調整（合計100%） */
+    table.stock-table th:nth-child(1) { width: 14%; } /* 日付 */
+    table.stock-table th:nth-child(2) { width: 10%; } /* 状態 */
+    table.stock-table th:nth-child(3) { width: 12%; } /* コード */
+    table.stock-table th:nth-child(4) { width: auto; } /* 銘柄名（残り全部） */
+    table.stock-table th:nth-child(5) { width: 15%; } /* 現在値 */
+    table.stock-table th:nth-child(6) { width: 14%; } /* 前日比 */
+  }
+
   #loading {
     text-align: center;
     padding: 30px;
@@ -100,7 +121,7 @@
 </div>
 
 <script>
-  // ▼▼▼ 動作確認済みの正しいURLを入れておきました ▼▼▼
+  // ▼▼▼ あなたのGAS URL (そのままでOK) ▼▼▼
   const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzvdeV4ek9JwVp9uM8es2DwJApOnkPu6VOw0TztKubOxjWFFxzjT__8iQPKzsEBzBvd/exec"; 
   // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
@@ -133,16 +154,25 @@
         row.forEach((cell, index) => {
           let td = document.createElement('td');
           let text = cell.toString();
+
+          // 【スマホ対策】日付から「西暦（2025/）」を消して短くする処理
+          if (index === 0) {
+             text = text.replace(/^\d{4}\//, ''); 
+          }
+
           td.textContent = text;
 
-          // 色分けロジック
-          if (text.includes("S高") || (text.startsWith("+"))) {
+          // 【色分けロジックの強化】
+          // S高 または +から始まる数字
+          if (text.includes("S高") || text.trim().startsWith("+")) {
             td.classList.add("text-red");
-          } else if (text.includes("S安") || (text.startsWith("-"))) {
+          } 
+          // S安 または -から始まる数字
+          else if (text.includes("S安") || text.trim().startsWith("-")) {
             td.classList.add("text-blue");
           }
 
-          // 右寄せ調整（金額系の列）
+          // 右寄せ調整（現在値と前日比）
           if (index === 4 || index === 5) { 
              td.style.textAlign = "right";
           }
