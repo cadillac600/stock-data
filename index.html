@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>S高・S安 履歴</title>
+<style>
+  /* 全体のデザイン設定 */
+  .stock-table-container {
+    font-family: "Roboto", sans-serif;
+    max-width: 100%;
+    overflow-x: auto; /* スマホで見切れないように横スクロール */
+    margin: 20px auto;
+  }
+  
+  table.stock-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px; /* 文字サイズ */
+    border: 1px solid #d9d9d9;
+  }
+
+  /* ヘッダーのデザイン */
+  table.stock-table th {
+    background-color: #A0522D; /* 赤茶色 */
+    color: white;
+    padding: 10px;
+    font-weight: bold;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  /* セルのデザイン */
+  table.stock-table td {
+    padding: 8px 10px;
+    border: 1px solid #d9d9d9;
+    color: black;
+  }
+
+  /* 1行ごとの縞模様（ピンク系） */
+  table.stock-table tr:nth-child(even) {
+    background-color: #fce8e6; /* 薄いピンク */
+  }
+
+  /* S高・プラスの文字色 */
+  .text-red {
+    color: #CC0000;
+    font-weight: bold;
+  }
+
+  /* S安・マイナスの文字色 */
+  .text-blue {
+    color: #0000CC;
+    font-weight: bold;
+  }
+
+  /* ローディング表示 */
+  #loading {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+  }
+</style>
+</head>
+<body>
+
+<div class="stock-table-container">
+  <h3>ストップ高・ストップ安 履歴</h3>
+  <div id="loading">データ読み込み中...</div>
+  <table class="stock-table" id="stockTable" style="display:none;">
+    <thead id="tableHead"></thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+</div>
+
+<script>
+  // ▼▼▼ あなたのGAS URLを設定しました ▼▼▼
+  const GAS_API_URL = "https://script.google.com/macros/s/AKfycbyc8KXuA7A_-4_LpTY6RO0Ip9r3ED_g9NtMDgtbzLgpH-hwtouK8db3Zp_8sls-jVVk/exec"; 
+  // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
+  fetch(GAS_API_URL)
+    .then(response => response.json())
+    .then(data => {
+      const tableHead = document.getElementById('tableHead');
+      const tableBody = document.getElementById('tableBody');
+      const loading = document.getElementById('loading');
+      const table = document.getElementById('stockTable');
+
+      // データが空の場合
+      if (!data || data.length === 0) {
+        loading.textContent = "データがありません";
+        return;
+      }
+
+      // 1. ヘッダーの作成（データ配列の1つ目）
+      const headers = data[0];
+      let headerRow = "<tr>";
+      headers.forEach(text => {
+        headerRow += `<th>${text}</th>`;
+      });
+      headerRow += "</tr>";
+      tableHead.innerHTML = headerRow;
+
+      // 2. データ行の作成
+      data.slice(1).forEach(row => { 
+        let tr = document.createElement('tr');
+        
+        row.forEach((cell, index) => {
+          let td = document.createElement('td');
+          let text = cell.toString();
+          td.textContent = text;
+
+          // 色分けロジック
+          if (text.includes("S高") || (text.startsWith("+"))) {
+            td.classList.add("text-red");
+          } else if (text.includes("S安") || (text.startsWith("-"))) {
+            td.classList.add("text-blue");
+          }
+
+          // 右寄せなどの調整
+          if (index === 4 || index === 5) { 
+             td.style.textAlign = "right";
+          }
+
+          tr.appendChild(td);
+        });
+        tableBody.appendChild(tr);
+      });
+
+      // 表示切り替え
+      loading.style.display = 'none';
+      table.style.display = 'table';
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      document.getElementById('loading').textContent = "読み込みエラーが発生しました";
+    });
+</script>
+
+</body>
+</html>
