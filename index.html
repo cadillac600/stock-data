@@ -33,31 +33,31 @@
     -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
   }
 
-  /* ▼▼▼ アイコンの共通デザイン（ここでサイズを統一！） ▼▼▼ */
+  /* ▼▼▼ アイコンの共通デザイン（18pxに変更！） ▼▼▼ */
   .bbs-icon, .kabutan-icon, .x-icon {
-    width: 22px;         /* ★すべてのサイズを22pxに統一 */
-    height: 22px;        /* ★正方形にする */
-    object-fit: cover;   /* 画像を枠いっぱいに表示（歪み防止） */
-    border-radius: 4px;  /* 角を少し丸める */
+    width: 18px;         /* ★18pxに変更 */
+    height: 18px;        /* ★18pxに変更 */
+    object-fit: cover;   
+    border-radius: 3px;  /* サイズに合わせて角丸も少し小さく調整 */
     vertical-align: middle;
   }
 
   /* ▼▼▼ 個別の位置調整 ▼▼▼ */
   
-  /* X（Twitter）アイコン：日付の下、中央寄せ */
+  /* X（Twitter）アイコン */
   .x-icon {
-    display: block;      /* 改行させる */
-    margin: 4px auto 0;  /* 上に隙間、左右は中央 */
+    display: block;      
+    margin: 4px auto 0;  
   }
 
-  /* Yahoo掲示板アイコン：コードの右 */
+  /* Yahoo掲示板アイコン */
   .bbs-icon {
-    margin-left: 6px;    /* 数字との隙間 */
+    margin-left: 5px;    /* 隙間も少し調整 */
   }
 
-  /* 株探アイコン：銘柄名の左 */
+  /* 株探アイコン */
   .kabutan-icon {
-    margin-right: 6px;   /* 文字との隙間 */
+    margin-right: 5px;   /* 隙間も少し調整 */
   }
 
   /* タブボタンのデザイン */
@@ -160,7 +160,7 @@
     /* 列幅の微調整 */
     table.stock-table th:nth-child(1) { width: 15%; }
     table.stock-table th:nth-child(2) { width: 9%; }
-    table.stock-table th:nth-child(3) { width: 14%; } /* アイコン分少し広く */
+    table.stock-table th:nth-child(3) { width: 14%; }
     table.stock-table th:nth-child(4) { width: auto; }
     table.stock-table th:nth-child(5) { width: 15%; }
     table.stock-table th:nth-child(6) { width: 13%; }
@@ -314,64 +314,3 @@
         if (cellIndex === 0) {
             // 【日付列】→ テキスト + Xアイコン
             let dateDiv = document.createElement('div');
-            dateDiv.textContent = text;
-            td.appendChild(dateDiv);
-
-            let xLink = document.createElement('a');
-            xLink.href = `https://x.com/search?q=${stockCode}+株&f=live`;
-            xLink.target = "_blank";
-            xLink.rel = "noopener noreferrer";
-
-            let xIcon = document.createElement('img');
-            xIcon.src = "x.jpg"; 
-            xIcon.className = "x-icon"; 
-            
-            xLink.appendChild(xIcon);
-            td.appendChild(xLink);
-
-        } else if (cellIndex === 2) { 
-            // 【コード列】 → Yahooアイコン
-            let link = document.createElement('a');
-            link.href = `https://finance.yahoo.co.jp/quote/${stockCode}.T/bbs`;
-            link.target = "_blank";
-            link.rel = "noopener noreferrer";
-            link.textContent = text; 
-            
-            let icon = document.createElement('img');
-            icon.src = "bbs.jpg"; 
-            icon.className = "bbs-icon";
-            link.appendChild(icon);
-            td.appendChild(link);
-            
-        } else if (cellIndex === 3) {
-            // 【銘柄名列】 → 株探アイコン
-            let link = document.createElement('a');
-            link.href = `https://kabutan.jp/stock/?code=${stockCode}`;
-            link.target = "_blank";
-            link.rel = "noopener noreferrer";
-            
-            let icon = document.createElement('img');
-            icon.src = "kabu.jpg"; 
-            icon.className = "kabutan-icon";
-            
-            link.appendChild(icon);
-            link.appendChild(document.createTextNode(text));
-            td.appendChild(link);
-            
-        } else {
-            td.textContent = text;
-        }
-
-        if (cellIndex === 4 || cellIndex === 5) { 
-           td.style.textAlign = "right";
-        }
-
-        tr.appendChild(td);
-      });
-      tableBody.appendChild(tr);
-    });
-  }
-</script>
-
-</body>
-</html>
