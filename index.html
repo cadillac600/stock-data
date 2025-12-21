@@ -19,35 +19,34 @@
     background-color: #f1f3f4;
   }
 
-  /* ▼▼▼ タイトルエリアのデザイン変更（ここを変えました！） ▼▼▼ */
+  /* ▼▼▼ タイトルエリアのデザイン ▼▼▼ */
   .title-area {
-    display: flex;       /* 横並びにする */
+    display: flex;
     align-items: center; /* 上下中央揃え */
     margin: 10px 0 15px 5px;
   }
 
   .title-area h3 {
-    margin: 0;           /* 余計な隙間を削除 */
+    margin: 0;
     color: #202124;
     font-size: 18px;
-    line-height: 1;      /* 高さを揃える */
+    line-height: 1;
   }
 
   .title-img-left {
-    width: 24px;         /* 画像サイズ */
+    width: 24px;
     height: 24px;
-    margin-right: 8px;   /* 文字との隙間 */
-    object-fit: contain; /* 形を崩さない */
+    margin-right: 8px;
+    object-fit: contain;
   }
 
   .title-img-right {
-    width: 24px;         /* 画像サイズ */
+    width: 24px;
     height: 24px;
-    margin-left: 8px;    /* 文字との隙間 */
-    object-fit: contain; /* 形を崩さない */
+    margin-left: 8px;
+    object-fit: contain;
   }
   /* ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ */
-
 
   /* リンクのデザイン */
   a {
@@ -103,10 +102,10 @@
 
   /* アイコンの共通デザイン */
   .bbs-icon, .kabutan-icon, .x-icon {
-    width: 18px;         
-    height: 18px;        
-    object-fit: cover;   
-    border-radius: 3px;  
+    width: 18px;          
+    height: 18px;         
+    object-fit: cover;    
+    border-radius: 3px;   
     vertical-align: middle;
   }
 
@@ -277,7 +276,27 @@
       const headers = data[0];
       let rows = data.slice(1);
       
-      rows.reverse(); // 最新順
+      // ▼▼▼ 並び替え処理：日付順 ＞ S高優先 ▼▼▼
+      rows.sort((a, b) => {
+        // 1. 日付の比較（新しい日付を上に）
+        if (a[0] > b[0]) return -1;
+        if (a[0] < b[0]) return 1;
+
+        // 2. 同じ日付の場合、S高をS安より上に
+        const statusA = a[1];
+        const statusB = b[1];
+        const isHighA = statusA.includes("S高");
+        const isHighB = statusB.includes("S高");
+
+        // AがS高でBが違うなら、Aを上(-1)に
+        if (isHighA && !isHighB) return -1;
+        // BがS高でAが違うなら、Bを上(1)に
+        if (!isHighA && isHighB) return 1;
+        
+        return 0; // どちらも同じなら順序変えない
+      });
+      // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
       allData = rows;
 
       createMonthTabs(rows);
