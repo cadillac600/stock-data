@@ -3,284 +3,415 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>活況銘柄・S高履歴</title>
+<title>S高・活況銘柄ビューア</title>
+<link rel="icon" href="icon.png">
+
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
-  body { margin: 0; padding: 10px; font-family: 'Roboto', sans-serif; background-color: #f1f3f4; }
+  body { margin: 0; padding: 10px; font-family: 'Roboto', sans-serif; background: #f1f3f4; color: #333; }
+  a { text-decoration: none; color: inherit; }
   
-  /* タイトル */
-  .title-area { display: flex; align-items: center; margin: 10px 0 15px 5px; }
-  .title-area h3 { margin: 0; color: #202124; font-size: 18px; }
-  .title-img { width: 24px; height: 24px; margin-right: 8px; object-fit: contain; }
+  /* --- 共通ヘッダー --- */
+  .app-header { display: flex; align-items: center; margin-bottom: 15px; }
+  .app-title { font-size: 18px; font-weight: bold; margin: 0 10px; }
+  .icon-img { width: 24px; height: 24px; object-fit: contain; }
 
-  /* 凡例 */
-  .legend-area { background: white; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 11px; color: #444; border: 1px solid #dadce0; }
-  .legend-item { display: inline-flex; align-items: center; margin-right: 15px; }
-  .legend-icon { width: 16px; height: 16px; margin-right: 5px; border-radius: 3px; }
-
-  /* 市場切り替えボタン */
-  .market-tabs { display: flex; gap: 10px; margin-bottom: 15px; }
-  .market-btn {
-    flex: 1; padding: 10px 0; text-align: center;
-    background: #fff; border: 1px solid #999; border-radius: 4px;
-    font-weight: bold; font-size: 13px; color: #555; cursor: pointer;
+  /* --- メイン切り替えボタン（大） --- */
+  .main-nav { display: flex; gap: 8px; margin-bottom: 12px; }
+  .nav-item {
+    flex: 1; padding: 12px 0; border-radius: 8px; border: none;
+    font-size: 14px; font-weight: bold; color: #666; background: #e0e0e0;
+    cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 3px rgba(0,0,0,0.1);
   }
-  .market-btn.active { background: #333; color: #fff; border-color: #333; }
+  /* S高モードのアクティブ色 */
+  .nav-item.shigh.active { background: #e91e63; color: white; transform: translateY(1px); }
+  /* 活況モードのアクティブ色 */
+  .nav-item.active-stock.active { background: #ff9800; color: white; transform: translateY(1px); }
 
-  /* 月タブ */
-  .tabs { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 10px; padding-bottom: 5px; }
-  .tab-button {
-    padding: 6px 16px; background: #fff; border: 1px solid #dadce0; border-radius: 20px;
-    font-size: 13px; color: #5f6368; white-space: nowrap; cursor: pointer;
+  /* --- サブメニュー（小） --- */
+  .sub-nav { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; margin-bottom: 10px; scrollbar-width: none; }
+  .sub-nav::-webkit-scrollbar { display: none; }
+  
+  .pill-btn {
+    padding: 6px 14px; background: white; border: 1px solid #ccc; border-radius: 20px;
+    font-size: 12px; white-space: nowrap; cursor: pointer; color: #555;
   }
-  .tab-button.active { background: #e91e63; color: white; border-color: #e91e63; }
+  .pill-btn.active { background: #333; color: white; border-color: #333; font-weight: bold; }
 
-  /* テーブル */
-  .table-container { background: white; border-radius: 4px; border: 1px solid #dadce0; overflow-x: hidden; }
+  /* --- 凡例リンク --- */
+  .links-area { background: white; padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; font-size: 11px; display: flex; flex-wrap: wrap; gap: 12px; border: 1px solid #ddd; }
+  .link-item { display: flex; align-items: center; }
+  .small-icon { width: 16px; height: 16px; margin-right: 4px; border-radius: 3px; }
+
+  /* --- テーブル --- */
+  .table-wrap { background: white; border-radius: 4px; border: 1px solid #ddd; overflow-x: hidden; min-height: 200px; }
   table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
-  th { background: #e91e63; color: white; padding: 8px 2px; border: 1px solid #c2185b; white-space: nowrap; }
-  td { padding: 8px 2px; border: 1px solid #e0e0e0; text-align: center; vertical-align: middle; }
   
-  /* 列幅調整（スマホ最適化） */
-  th:nth-child(1) { width: 16%; } /* 日付 */
-  th:nth-child(2) { width: 14%; } /* コード */
-  th:nth-child(3) { width: auto; } /* 銘柄名 */
-  th:nth-child(4) { width: 18%; } /* 株価 */
-  th:nth-child(5) { width: 18%; } /* 前日比 */
+  th { background: #f5f5f5; color: #333; padding: 10px 4px; border-bottom: 2px solid #ddd; font-weight: bold; white-space: nowrap; }
+  /* モード別のヘッダー色 */
+  body.mode-shigh th { background: #e91e63; color: white; border-color: #c2185b; }
+  body.mode-active th { background: #ff9800; color: white; border-color: #f57c00; }
 
-  td:nth-child(3) { text-align: left; padding-left: 5px; } /* 銘柄名は左寄せ */
-  td:nth-child(4), td:nth-child(5) { text-align: right; padding-right: 5px; } /* 数字は右寄せ */
+  td { padding: 8px 4px; border-bottom: 1px solid #eee; text-align: center; vertical-align: middle; word-wrap: break-word; }
+  
+  /* 列幅調整 */
+  .col-date { width: 16%; }
+  .col-status { width: 10%; } /* S高のみ */
+  .col-code { width: 16%; }
+  .col-name { width: auto; text-align: left; }
+  .col-price { width: 18%; text-align: right; }
+  .col-change { width: 18%; text-align: right; }
 
   /* 色分け */
   .text-red { color: #d32f2f; font-weight: bold; }
   .text-blue { color: #1976d2; font-weight: bold; }
-  .date-changed td { border-top: 2px solid #888 !important; }
+  .bg-red-light { background-color: #fff0f5; }
+  
+  /* 日付区切り線 */
+  .date-sep td { border-top: 2px solid #999 !important; }
 
-  #loading { padding: 40px; text-align: center; color: #666; }
+  /* 表示制御 */
+  .hidden { display: none !important; }
+  #loading { text-align: center; padding: 40px; color: #777; font-size: 13px; }
 </style>
 </head>
-<body>
+<body class="mode-shigh">
 
-<div class="title-area">
-  <img src="sd.jpg" class="title-img" onerror="this.style.display='none'">
-  <h3>活況銘柄・履歴</h3>
+<div class="app-header">
+  <img src="sd.jpg" class="icon-img" onerror="this.style.display='none'">
+  <div class="app-title">株式データビューア</div>
+  <img src="ss.jpg" class="icon-img" onerror="this.style.display='none'">
 </div>
 
-<div class="legend-area">
-  <div class="legend-item"><img src="bbs.jpg" class="legend-icon" onerror="this.style.display='none'">掲示板</div>
-  <div class="legend-item"><img src="kabu.jpg" class="legend-icon" onerror="this.style.display='none'">株探</div>
-  <div class="legend-item"><img src="x.jpg" class="legend-icon" onerror="this.style.display='none'">X検索</div>
+<div class="main-nav">
+  <button class="nav-item shigh active" onclick="switchMainMode('shigh')">📈 S高履歴</button>
+  <button class="nav-item active-stock" onclick="switchMainMode('active')">🔥 活況銘柄</button>
 </div>
 
-<div class="market-tabs">
-    <div class="market-btn active" id="btn-all" onclick="switchMarket('all')">全市場</div>
-    <div class="market-btn" id="btn-std" onclick="switchMarket('std')">スタンダード</div>
-    <div class="market-btn" id="btn-grw" onclick="switchMarket('grw')">グロース</div>
+<div class="links-area">
+  <div class="link-item"><img src="bbs.jpg" class="small-icon" onerror="this.style.display='none'">掲示板</div>
+  <div class="link-item"><img src="kabu.jpg" class="small-icon" onerror="this.style.display='none'">株探</div>
+  <div class="link-item" style="width:100%; border-top:1px dashed #eee; padding-top:4px; margin-top:-4px;">
+    <img src="x.jpg" class="small-icon" onerror="this.style.display='none'">X(Twitter)検索
+  </div>
 </div>
 
-<div class="tabs" id="monthTabs"></div>
+<div id="sub-active" class="sub-nav hidden">
+  <button class="pill-btn active" onclick="loadActiveData('all', this)">全市場</button>
+  <button class="pill-btn" onclick="loadActiveData('std', this)">スタンダード</button>
+  <button class="pill-btn" onclick="loadActiveData('grw', this)">グロース</button>
+</div>
 
-<div class="table-container">
-  <div id="loading">データを読み込み中...</div>
-  <table id="stockTable" style="display:none;">
-    <thead>
-      <tr><th>日付</th><th>コード</th><th>銘柄名</th><th>株価</th><th>前日比</th></tr>
-    </thead>
+<div id="sub-shigh" class="sub-nav"></div>
+
+<div class="table-wrap">
+  <div id="loading">データを読み込んでいます...</div>
+  <table id="dataTable" style="display:none;">
+    <thead id="tableHead"></thead>
     <tbody id="tableBody"></tbody>
   </table>
 </div>
 
 <script>
-  // ▼▼▼ 設定エリア ▼▼▼
-  // 活況銘柄のスプレッドシートID
-  const SHEET_ID = "1DiJXYQ8FlHk5_2GEJDmVET8gmHvqwmgTeUXWo5oCmRs"; 
-  const SHEET_GIDS = {
-      all: "0",          // dataシート (全市場)
-      std: "1953765914", // data_stdシート (スタンダード)
-      grw: "1943516156"  // data_grwシート (グロース)
+  // ▼▼▼ 設定：スプレッドシートID ▼▼▼
+  const ID_SHIGH  = "1GomxLhDw7ukSwr4PuhYrhCdncvIx2Eb5uznl1bzgeLk"; // S高
+  const ID_ACTIVE = "1DiJXYQ8FlHk5_2GEJDmVET8gmHvqwmgTeUXWo5oCmRs"; // 活況
+
+  const GIDS = {
+    shigh: "0",
+    active_all: "0",
+    active_std: "1953765914",
+    active_grw: "1943516156"
   };
-  // ▲▲▲▲▲▲▲▲▲▲▲
+  // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
-  let allData = [];
-  window.onload = function() { switchMarket('all'); };
+  // グローバル変数
+  let currentMode = 'shigh'; // 'shigh' or 'active'
+  let cachedSHighData = [];  // S高データはキャッシュしておく
 
-  function switchMarket(type) {
-      document.querySelectorAll('.market-btn').forEach(b => b.classList.remove('active'));
-      document.getElementById(`btn-${type}`).classList.add('active');
-      
-      document.getElementById('stockTable').style.display = 'none';
-      document.getElementById('loading').style.display = 'block';
-      document.getElementById('loading').textContent = "読み込み中...";
-      
-      loadSheetData(type);
-  }
+  // 初期化
+  window.onload = () => {
+    switchMainMode('shigh'); // 最初はS高を表示
+  };
 
-  async function loadSheetData(type) {
-    const gid = SHEET_GIDS[type];
-    // gviz/tq でCSV取得 (キャッシュ回避のため t=Date.now() を付与)
-    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${gid}&t=${Date.now()}`;
+  // --- モード切り替え処理 ---
+  function switchMainMode(mode) {
+    currentMode = mode;
+    document.body.className = `mode-${mode}`;
 
-    try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error("Network response was not ok");
-        const text = await response.text();
-        
-        // Googleログイン画面が返ってきていないかチェック
-        if(text.includes("<!DOCTYPE html>")) {
-            throw new Error("スプレッドシートがWebに公開されていません");
-        }
-        
-        parseAndRender(text);
-    } catch (e) {
-        document.getElementById('loading').innerHTML = 
-            `読み込み失敗<br><span style="font-size:11px;color:red;">${e.message}</span>`;
+    // ボタン見た目
+    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+    document.querySelector(`.nav-item.${mode === 'shigh' ? 'shigh' : 'active-stock'}`).classList.add('active');
+
+    // サブメニュー表示切り替え
+    document.getElementById('sub-active').classList.toggle('hidden', mode !== 'active');
+    document.getElementById('sub-shigh').classList.toggle('hidden', mode !== 'shigh');
+
+    // データ読み込み開始
+    if(mode === 'shigh') {
+      // S高は一度読んだらキャッシュを使う（月切り替え高速化のため）
+      if(cachedSHighData.length > 0) {
+        renderSHighTabs(cachedSHighData); // タブ再描画
+        filterSHighByMonth('all');        // 全表示
+      } else {
+        loadSHighData();
+      }
+    } else {
+      // 活況はデフォルトで全市場を読み込み
+      loadActiveData('all');
     }
   }
 
-  function parseAndRender(csvText) {
-      const lines = csvText.trim().split('\n');
-      const dataRows = [];
-
-      // 1行目はヘッダーなので2行目(i=1)から処理
-      for(let i = 1; i < lines.length; i++) {
-          // カンマ区切りだが、"1,000"のようなデータ内のカンマを無視する簡易パース
-          // ここでは単純に split(',') して、値の中の " や ¥, 円 を削除する
-          let row = lines[i].split(',').map(cell => 
-              cell.replace(/^"|"$/g, '')   // 前後のダブルクォート削除
-                  .replace(/[円¥,]/g, '')  // 「円」「¥」「,」を削除して数値化しやすくする
-          );
-          
-          if(row.length > 1) {
-              // コードが "9501.0" のようになる場合があるので .0 を消す
-              if(row[1]) row[1] = row[1].replace('.0', '');
-              dataRows.push(row);
-          }
-      }
-
-      // 日付降順ソート
-      dataRows.sort((a, b) => (a[0] < b[0] ? 1 : -1));
+  // --- CSV取得＆パース ---
+  async function fetchCSV(sheetId, gid) {
+    showLoading(true);
+    const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}&t=${Date.now()}`;
+    try {
+      const res = await fetch(url);
+      if(!res.ok) throw new Error("通信エラー");
+      const text = await res.text();
+      if(text.includes("<!DOCTYPE")) throw new Error("Web公開設定を確認してください");
       
-      allData = dataRows;
-      createMonthTabs(allData);
-      drawRows(allData);
-      
-      document.getElementById('loading').style.display = 'none';
-      document.getElementById('stockTable').style.display = 'table';
+      return parseCSV(text);
+    } catch(e) {
+      document.getElementById('loading').innerHTML = `<span style="color:red">読み込み失敗:<br>${e.message}</span>`;
+      return null;
+    }
   }
 
-  function createMonthTabs(rows) {
-      const container = document.getElementById('monthTabs');
-      container.innerHTML = "";
-      const months = new Set();
-      
-      rows.forEach(r => {
-          const m = r[0].match(/^(\d{4}\/\d{1,2})/);
-          if(m) months.add(m[1]);
-      });
-
-      // 「すべて」ボタン
-      const btnAll = document.createElement('button');
-      btnAll.className = 'tab-button active';
-      btnAll.textContent = 'すべて';
-      btnAll.onclick = () => {
-          document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
-          btnAll.classList.add('active');
-          drawRows(allData);
-      };
-      container.appendChild(btnAll);
-
-      // 月別ボタン
-      months.forEach(m => {
-          const btn = document.createElement('button');
-          btn.className = 'tab-button';
-          btn.textContent = m;
-          btn.onclick = () => {
-              document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
-              btn.classList.add('active');
-              const filtered = allData.filter(r => r[0].startsWith(m));
-              drawRows(filtered);
-          };
-          container.appendChild(btn);
-      });
+  function parseCSV(text) {
+    const lines = text.trim().split('\n');
+    const data = [];
+    // 1行目はヘッダーなのでスキップ
+    for(let i=1; i<lines.length; i++) {
+      // 簡易パース: 前後の"削除, 円/¥/,削除
+      const row = lines[i].split(',').map(cell => 
+        cell.replace(/^"|"$/g, '').replace(/[円¥,]/g, '')
+      );
+      if(row.length > 1) {
+          // コードの ".0" 削除
+          if(row[1]) row[1] = row[1].replace('.0', '');
+          // 日付の正規化 (YYYY/MM/DD)
+          if(row[0] && !row[0].includes('/')) { 
+             // 日付形式が違う場合の保険（必要なら追加）
+          }
+          data.push(row);
+      }
+    }
+    // 日付降順ソート
+    return data.sort((a, b) => a[0] < b[0] ? 1 : -1);
   }
 
-  function drawRows(rows) {
-      const tbody = document.getElementById('tableBody');
-      tbody.innerHTML = "";
+  function showLoading(isLoading) {
+    const table = document.getElementById('dataTable');
+    const loading = document.getElementById('loading');
+    if(isLoading) {
+      table.style.display = 'none';
+      loading.style.display = 'block';
+    } else {
+      table.style.display = 'table';
+      loading.style.display = 'none';
+    }
+  }
 
-      if(rows.length === 0) {
-          tbody.innerHTML = "<tr><td colspan='5'>データなし</td></tr>";
-          return;
+  // --- 【1】S高履歴のロジック ---
+  async function loadSHighData() {
+    const data = await fetchCSV(ID_SHIGH, GIDS.shigh);
+    if(!data) return;
+
+    cachedSHighData = data;
+    renderSHighTabs(data);
+    filterSHighByMonth('all'); // 最初はすべて表示
+  }
+
+  function renderSHighTabs(rows) {
+    const container = document.getElementById('sub-shigh');
+    container.innerHTML = "";
+    
+    // 月リスト作成
+    const months = new Set();
+    rows.forEach(r => {
+      const m = r[0].match(/^(\d{4}\/\d{1,2})/);
+      if(m) months.add(m[1]);
+    });
+
+    // 「すべて」ボタン
+    createPillBtn(container, 'すべて', true, () => filterSHighByMonth('all'));
+
+    // 各月ボタン
+    months.forEach(m => {
+      createPillBtn(container, m, false, () => filterSHighByMonth(m));
+    });
+  }
+
+  function filterSHighByMonth(month) {
+    // データフィルタリング
+    const filtered = (month === 'all') 
+      ? cachedSHighData 
+      : cachedSHighData.filter(r => r[0].startsWith(month));
+
+    // ヘッダー描画 (S高用)
+    const thead = document.getElementById('tableHead');
+    thead.innerHTML = `
+      <tr>
+        <th class="col-date">日付</th>
+        <th class="col-status">状態</th>
+        <th class="col-code">コード</th>
+        <th class="col-name">銘柄名</th>
+        <th class="col-price">株価</th>
+        <th class="col-change">前日比</th>
+      </tr>
+    `;
+
+    renderTableBody(filtered, 'shigh');
+  }
+
+  // --- 【2】活況銘柄のロジック ---
+  async function loadActiveData(type, btn) {
+    if(btn) {
+      document.querySelectorAll('#sub-active .pill-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    const data = await fetchCSV(ID_ACTIVE, GIDS[`active_${type}`]);
+    if(!data) return;
+
+    // ヘッダー描画 (活況用)
+    const thead = document.getElementById('tableHead');
+    thead.innerHTML = `
+      <tr>
+        <th class="col-date">日付</th>
+        <th class="col-code">コード</th>
+        <th class="col-name">銘柄名</th>
+        <th class="col-price">株価</th>
+        <th class="col-change">前日比</th>
+      </tr>
+    `;
+
+    renderTableBody(data, 'active');
+  }
+
+  // --- 共通テーブル描画 ---
+  function renderTableBody(rows, mode) {
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = "";
+    showLoading(false);
+
+    if(rows.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6">データがありません</td></tr>`;
+      return;
+    }
+
+    rows.forEach((row, idx) => {
+      const tr = document.createElement('tr');
+      
+      // 日付の区切り線
+      if(idx > 0 && row[0] !== rows[idx-1][0]) {
+        tr.classList.add('date-sep');
+      }
+      // 偶数行の色
+      if(idx % 2 === 0) tr.style.backgroundColor = "#fafafa";
+
+      // 列定義マップ
+      // S高: [0]日付 [1]状態 [2]コード [3]名 [4]回数 [5]比% [6]比 [7]株価 (想定)
+      // 活況: [0]日付 [1]コード [2]名 [3]回数 [4]比% [5]比 [6]株価 (想定)
+      
+      let dateVal = row[0].replace(/^\d{4}\//, ''); // 年削除
+      let codeVal, nameVal, priceVal, changeVal, statusVal = null;
+
+      if(mode === 'shigh') {
+         statusVal = row[1];
+         codeVal = row[2];
+         nameVal = row[3];
+         changeVal = row[6];
+         priceVal = row[7];
+      } else {
+         codeVal = row[1];
+         nameVal = row[2];
+         changeVal = row[5];
+         priceVal = row[6];
       }
 
-      rows.forEach((row, idx) => {
-          const tr = document.createElement('tr');
-          
-          // 日付の変わり目に線
-          if(idx > 0 && row[0] !== rows[idx-1][0]) {
-              tr.classList.add('date-changed');
-          }
+      // undefined対策
+      priceVal = priceVal || "-";
+      changeVal = changeVal || "-";
 
-          // データ割り当て (CSV列番号: 0:日付, 1:コード, 2:名, 3:回数, 4:比%, 5:比, 6:株価)
-          // ※先ほどのパースでカンマなどを消しているので数値計算が可能
-          const dateStr = row[0].replace(/^\d{4}\//, ''); // 年を削除して短く
-          const code    = row[1];
-          const name    = row[2];
-          const price   = row[6]; // 株価列
-          const change  = row[5]; // 前日比列
+      // --- 1. 日付 ---
+      const tdDate = document.createElement('td');
+      tdDate.innerHTML = `
+        <div>${dateVal}</div>
+        <a href="https://x.com/search?q=${codeVal} ${nameVal} 株&src=typed_query&f=live" target="_blank">
+          <img src="x.jpg" class="small-icon" style="margin-top:3px;" onerror="this.style.display='none'">
+        </a>
+      `;
+      tr.appendChild(tdDate);
 
-          // 1. 日付 + Xリンク
-          const tdDate = document.createElement('td');
-          tdDate.innerHTML = `
-            <div>${dateStr}</div>
-            <a href="https://x.com/search?q=${code} ${name} 株&src=typed_query&f=live" target="_blank">
-              <img src="x.jpg" class="legend-icon" style="margin:2px 0 0 0;" onerror="this.style.display='none'">
-            </a>
-          `;
-          tr.appendChild(tdDate);
+      // --- 2. 状態 (S高のみ) ---
+      if(mode === 'shigh') {
+        const tdStatus = document.createElement('td');
+        tdStatus.textContent = statusVal;
+        if(statusVal && statusVal.includes("S高")) tdStatus.style.color = "#d32f2f";
+        if(statusVal && statusVal.includes("S安")) tdStatus.style.color = "#1976d2";
+        tdStatus.style.fontWeight = "bold";
+        tdStatus.style.fontSize = "11px";
+        tr.appendChild(tdStatus);
+      }
 
-          // 2. コード + 掲示板リンク
-          const tdCode = document.createElement('td');
-          tdCode.innerHTML = `
-            <a href="https://finance.yahoo.co.jp/quote/${code}.T/bbs" target="_blank" style="text-decoration:none; color:#333;">
-              <span style="font-weight:bold;">${code}</span>
-              <img src="bbs.jpg" class="legend-icon" style="vertical-align:text-bottom; margin-left:2px;" onerror="this.style.display='none'">
-            </a>
-          `;
-          tr.appendChild(tdCode);
+      // --- 3. コード ---
+      const tdCode = document.createElement('td');
+      tdCode.innerHTML = `
+        <a href="https://finance.yahoo.co.jp/quote/${codeVal}.T/bbs" target="_blank">
+          ${codeVal}<img src="bbs.jpg" class="small-icon" style="vertical-align:bottom; margin-left:2px;" onerror="this.style.display='none'">
+        </a>
+      `;
+      tr.appendChild(tdCode);
 
-          // 3. 銘柄名 + 株探リンク
-          const tdName = document.createElement('td');
-          tdName.innerHTML = `
-            <a href="https://kabutan.jp/stock/?code=${code}" target="_blank" style="text-decoration:none; color:#1a0dab;">
-              ${name}
-              <img src="kabu.jpg" class="legend-icon" style="vertical-align:text-bottom; margin-left:2px;" onerror="this.style.display='none'">
-            </a>
-          `;
-          tr.appendChild(tdName);
+      // --- 4. 銘柄名 ---
+      const tdName = document.createElement('td');
+      tdName.className = "col-name";
+      tdName.innerHTML = `
+        <a href="https://kabutan.jp/stock/?code=${codeVal}" target="_blank">
+          ${nameVal}<img src="kabu.jpg" class="small-icon" style="vertical-align:bottom; margin-left:2px;" onerror="this.style.display='none'">
+        </a>
+      `;
+      tr.appendChild(tdName);
 
-          // 4. 株価
-          const tdPrice = document.createElement('td');
-          tdPrice.textContent = Number(price).toLocaleString(); // 再度カンマ付与
-          tr.appendChild(tdPrice);
+      // --- 5. 株価 ---
+      const tdPrice = document.createElement('td');
+      tdPrice.className = "col-price";
+      tdPrice.textContent = Number(priceVal).toLocaleString();
+      tr.appendChild(tdPrice);
 
-          // 5. 前日比 (色付け)
-          const tdChange = document.createElement('td');
-          const numChange = parseFloat(change);
-          let displayChange = isNaN(numChange) ? change : numChange.toLocaleString();
-          
-          if(numChange > 0) {
-              tdChange.className = 'text-red';
-              displayChange = '+' + displayChange;
-          } else if(numChange < 0) {
-              tdChange.className = 'text-blue';
-          }
-          
-          tdChange.textContent = displayChange;
-          tr.appendChild(tdChange);
+      // --- 6. 前日比 ---
+      const tdChange = document.createElement('td');
+      tdChange.className = "col-change";
+      
+      const numChange = parseFloat(changeVal);
+      if(!isNaN(numChange)) {
+         tdChange.textContent = (numChange > 0 ? "+" : "") + numChange.toLocaleString();
+         if(numChange > 0) tdChange.className += " text-red";
+         if(numChange < 0) tdChange.className += " text-blue";
+      } else {
+         tdChange.textContent = changeVal;
+      }
+      tr.appendChild(tdChange);
 
-          tbody.appendChild(tr);
-      });
+      tbody.appendChild(tr);
+    });
+  }
+
+  // UIヘルパー: 丸いボタンを作る
+  function createPillBtn(container, text, isActive, onClick) {
+    const btn = document.createElement('button');
+    btn.className = `pill-btn ${isActive ? 'active' : ''}`;
+    btn.textContent = text;
+    btn.onclick = () => {
+      // 親コンテナ内の全ボタンのactiveを外す
+      container.querySelectorAll('.pill-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      onClick();
+    };
+    container.appendChild(btn);
   }
 </script>
 
