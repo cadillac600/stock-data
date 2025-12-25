@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>S高・S安 履歴</title>
 
+    <link rel="icon" type="image/png" href="icon.png">
     <link rel="apple-touch-icon" href="icon.png">
-    <link rel="icon" href="icon.png">
     <meta name="apple-mobile-web-app-title" content="S高履歴">
 
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@500;700&family=Noto+Sans+JP:wght@500;700&display=swap" rel="stylesheet">
@@ -22,7 +22,7 @@
             -webkit-text-size-adjust: 100%;
         }
 
-        /* --- 固定ヘッダー（黒×黄色） --- */
+        /* --- 固定ヘッダー --- */
         .fixed-header {
             position: fixed;
             top: 0;
@@ -34,7 +34,7 @@
         }
 
         .app-title {
-            color: #FFD700; /* 黄色 */
+            color: #FFD700;
             text-align: center;
             margin: 0;
             padding: 10px 0 5px 0;
@@ -80,60 +80,78 @@
             display: block;
         }
 
-        /* --- テーブル共通デザイン（スマホ最適化） --- */
+        /* --- テーブル共通デザイン --- */
         .table-container {
             width: 100%;
             background-color: white;
-            overflow-x: hidden; /* 横スクロール禁止 */
+            overflow-x: hidden;
         }
 
         table {
             width: 100%;
-            table-layout: fixed; /* 列幅固定 */
+            table-layout: fixed; /* 列幅固定ではみ出し防止 */
             border-collapse: collapse;
-            font-size: 10px; /* 文字サイズ調整 */
+            font-size: 10px; /* スマホ用サイズ */
         }
 
         th {
             background-color: #e91e63;
             color: white;
-            padding: 8px 2px;
+            padding: 8px 1px;
             font-weight: bold;
             text-align: center;
             position: sticky;
             top: 0;
+            z-index: 10;
             white-space: nowrap;
         }
 
         td {
-            padding: 8px 2px;
+            padding: 8px 1px; /* 余白を最小限に */
             border-bottom: 1px solid #ddd;
             vertical-align: middle;
             line-height: 1.3;
         }
 
-        /* --- 列ごとの幅調整（iPhone15幅 390px想定） --- */
-        
-        /* 1列目: コード/日付 */
-        th:nth-child(1), td:nth-child(1) { width: 12%; text-align: center; }
-
-        /* 2列目: 銘柄名/状態 */
-        /* S高履歴とランキングで構成が少し違うため微調整 */
-        
-        /* ランキング用: 2列目は銘柄名 */
-        #table-ranking th:nth-child(2), #table-ranking td:nth-child(2) { 
-            width: 24%; 
-            text-align: left; 
-            white-space: normal; 
-            word-break: break-all;
-            font-weight: bold;
+        /* --- 日付区切りの太線クラス --- */
+        tr.date-separator {
+            border-top: 3px solid #444; /* 濃いグレーの太線 */
         }
 
-        /* 3列目以降（数値） */
-        th:nth-child(3), td:nth-child(3) { width: 15%; text-align: right; letter-spacing: -0.5px; }
-        th:nth-child(4), td:nth-child(4) { width: 14%; text-align: right; letter-spacing: -0.5px; }
-        th:nth-child(5), td:nth-child(5) { width: 15%; text-align: right; letter-spacing: -0.5px; }
-        th:nth-child(6), td:nth-child(6) { width: 20%; text-align: right; font-weight: 500; }
+        /* --- 列幅調整 (iPhone15対応) --- */
+        
+        /* 1. S高履歴テーブル */
+        /* [日付, 状態, コード, 銘柄名, 現在値, 前日比] */
+        #table-sdaka th:nth-child(1), #table-sdaka td:nth-child(1) { width: 14%; text-align: center; letter-spacing: -0.5px;} /* 日付 */
+        #table-sdaka th:nth-child(2), #table-sdaka td:nth-child(2) { width: 9%;  text-align: center; font-weight: bold; } /* 状態 */
+        #table-sdaka th:nth-child(3), #table-sdaka td:nth-child(3) { width: 11%; text-align: center; } /* コード */
+        #table-sdaka th:nth-child(4), #table-sdaka td:nth-child(4) { 
+            width: 32%; 
+            text-align: left; 
+            white-space: normal; /* 改行許可 */
+            word-break: break-all; 
+            font-weight: bold;
+            padding-left: 2px;
+        } /* 銘柄名 */
+        #table-sdaka th:nth-child(5), #table-sdaka td:nth-child(5) { width: 17%; text-align: right; letter-spacing: -0.5px;} /* 現在値 */
+        #table-sdaka th:nth-child(6), #table-sdaka td:nth-child(6) { width: 17%; text-align: right; letter-spacing: -0.5px;} /* 前日比 */
+
+        /* 2. 活況ランキングテーブル */
+        /* [順, CD, 銘柄, 回数, %, 幅, 株価] */
+        #table-ranking th:nth-child(1), #table-ranking td:nth-child(1) { width: 0%; display:none;} /* index列は非表示 */
+        #table-ranking th:nth-child(2), #table-ranking td:nth-child(2) { width: 12%; text-align: center; } /* CD */
+        #table-ranking th:nth-child(3), #table-ranking td:nth-child(3) { 
+            width: 28%; 
+            text-align: left; 
+            white-space: normal;
+            word-break: break-all;
+            font-weight: bold;
+        } /* 銘柄 */
+        #table-ranking th:nth-child(4), #table-ranking td:nth-child(4) { width: 15%; text-align: right; letter-spacing: -1px;} /* 回数 */
+        #table-ranking th:nth-child(5), #table-ranking td:nth-child(5) { width: 13%; text-align: right; letter-spacing: -1px;} /* % */
+        #table-ranking th:nth-child(6), #table-ranking td:nth-child(6) { width: 14%; text-align: right; letter-spacing: -1px;} /* 幅 */
+        #table-ranking th:nth-child(7), #table-ranking td:nth-child(7) { width: 18%; text-align: right; font-weight: 500;} /* 株価 */
+
 
         /* シマウマ模様 */
         tr:nth-child(even) { background-color: #fce4ec; }
@@ -194,157 +212,8 @@
 
     <script>
         // ===============================================
-        // ★★★ 設定エリア（URL更新済み） ★★★
+        // ★★★ 設定エリア ★★★
         // ===============================================
         
-        // 1. S高履歴のGASウェブアプリURL (更新しました！)
-        const sHighGasUrl = "https://script.google.com/macros/s/AKfycbxG748E3HJpiUACWzkbOlekmXFsEhxB-c6zJI_XI50lbzigtm2S8LrkpRS3pUHcm7Kn/exec";
-
-        // 2. 活況銘柄のCSV URL（変更なし）
-        const rankingUrls = {
-            'all': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQSFL74v22ZNoGTNvcwbw9WnYRw9Hdl53zsSOE8Wwy6Jl76aDFxro3RHR-KhULyzLU0f4byxOEmX7Ef/pub?gid=0&single=true&output=csv',
-            'std': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQSFL74v22ZNoGTNvcwbw9WnYRw9Hdl53zsSOE8Wwy6Jl76aDFxro3RHR-KhULyzLU0f4byxOEmX7Ef/pub?gid=1953765914&single=true&output=csv',
-            'grw': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQSFL74v22ZNoGTNvcwbw9WnYRw9Hdl53zsSOE8Wwy6Jl76aDFxro3RHR-KhULyzLU0f4byxOEmX7Ef/pub?gid=1943516156&single=true&output=csv'
-        };
-
-        // ===============================================
-
-        window.onload = function() {
-            loadSHighData();
-        };
-
-        function switchTab(mode) {
-            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-
-            const areaSdaka = document.getElementById('area-sdaka');
-            const areaRanking = document.getElementById('area-ranking');
-            const pageTitle = document.getElementById('pageTitle');
-
-            if (mode === 'sdaka') {
-                areaSdaka.classList.add('active');
-                areaRanking.classList.remove('active');
-                pageTitle.innerText = "S高・S安 履歴";
-            } else {
-                areaSdaka.classList.remove('active');
-                areaRanking.classList.add('active');
-                pageTitle.innerText = "本日活況銘柄速報";
-                loadRankingData(mode);
-            }
-            window.scrollTo(0, 0);
-        }
-
-        // --- A. S高データ処理 ---
-        function loadSHighData() {
-            const loading = document.getElementById('loading-sdaka');
-            fetch(sHighGasUrl)
-                .then(r => r.json())
-                .then(data => {
-                    loading.style.display = 'none';
-                    renderSHighTable(data);
-                })
-                .catch(err => {
-                    console.error(err);
-                    loading.innerHTML = "読み込み失敗<br>URLを確認してください";
-                });
-        }
-
-        function renderSHighTable(data) {
-            const table = document.getElementById('table-sdaka');
-            // S高用ヘッダー
-            let html = `<thead><tr>
-                <th style="width:12%">日付</th>
-                <th style="width:10%">状態</th>
-                <th style="width:12%">CD</th>
-                <th style="width:24%">銘柄名</th>
-                <th style="width:18%">現在値</th>
-                <th style="width:15%">前日比</th>
-            </tr></thead><tbody>`;
-
-            const rows = data.slice(1).reverse(); 
-
-            rows.forEach(row => {
-                let statusColor = "text-black";
-                if(row[1].includes("S高")) statusColor = "text-red";
-                if(row[1].includes("S安")) statusColor = "text-blue";
-
-                let changeColor = "text-black";
-                if(String(row[5]).includes('+')) changeColor = "text-red";
-                if(String(row[5]).includes('-')) changeColor = "text-blue";
-                
-                // 日付を短縮 (2025/12/25 -> 12/25)
-                let dateStr = row[0].replace(/\d{4}\//, '');
-
-                html += `<tr>
-                    <td style="text-align:center">${dateStr}</td>
-                    <td style="text-align:center" class="${statusColor}">${row[1]}</td>
-                    <td style="text-align:center">${row[2]}</td>
-                    <td style="text-align:left; white-space:normal; font-weight:bold; word-break:break-all;">${row[3]}</td>
-                    <td style="text-align:right">${row[4]}</td>
-                    <td style="text-align:right" class="${changeColor}">${row[5]}</td>
-                </tr>`;
-            });
-            html += `</tbody>`;
-            table.innerHTML = html;
-        }
-
-        // --- B. 活況銘柄データ処理 ---
-        function loadRankingData(tabName) {
-            const url = rankingUrls[tabName];
-            const loading = document.getElementById('loading-ranking');
-            const tableBody = document.getElementById('body-ranking');
-            const tableHeader = document.getElementById('header-ranking');
-            const updateTime = document.getElementById('update-time-ranking');
-
-            loading.style.display = 'block';
-            tableBody.innerHTML = '';
-            tableHeader.innerHTML = '';
-            updateTime.innerText = '';
-
-            fetch(url).then(r => r.text()).then(t => {
-                renderRankingTable(parseCSV(t));
-                loading.style.display = 'none';
-            });
-        }
-
-        function renderRankingTable(data) {
-            const th = document.getElementById('header-ranking');
-            const tb = document.getElementById('body-ranking');
-            if (data.length === 0) return;
-            
-            const h = data[0];
-            if(data.length > 1) document.getElementById('update-time-ranking').innerText = "最終更新: " + data[1][0];
-            
-            // ヘッダー生成（項目名を短縮して表示）
-            let displayHeaders = ["", "CD", "銘柄", "回数", "%", "幅", "株価"];
-            
-            let hHTML = '';
-            // i=1(コード)から開始
-            for (let i = 1; i < h.length; i++) {
-                hHTML += `<th>${displayHeaders[i]}</th>`;
-            }
-            th.innerHTML = hHTML;
-
-            let bHTML = '';
-            for (let i = 1; i < data.length; i++) {
-                const r = data[i]; if (r.length < h.length) continue;
-                bHTML += `<tr>`;
-                for (let j = 1; j < r.length; j++) {
-                    let cls = "";
-                    if (r[j].includes('+')) cls = "text-red";
-                    else if (r[j].includes('-') && !r[j].includes('－')) cls = "text-blue";
-                    else cls = "text-black";
-                    
-                    bHTML += `<td class="${cls}">${r[j]}</td>`;
-                }
-                bHTML += `</tr>`;
-            }
-            tb.innerHTML = bHTML;
-        }
-
-        function parseCSV(text) {
-            const rows = []; let row = []; let cell = ""; let inQuote = false;
-            for (let i = 0; i < text.length; i++) {
-                const c = text[i], n = text[i+1];
-                if (c === '"') { if (inQuote && n === '"') { cell += '"'; i++; } else { inQuote = !inQuote; } }
-                else if (c === ',' && !inQuote) { row.push(cell
+        // 1. S高履歴のGASウェブアプリURL
+        const sHighGasUrl = "
