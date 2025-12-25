@@ -46,7 +46,7 @@
             align-items: center;
         }
         
-        /* タイトルのアイコン（簡易グラフ） */
+        /* タイトルのアイコン */
         .title-icon {
             margin-right: 8px;
             font-size: 20px;
@@ -152,106 +152,4 @@
 
     <script>
         // ★★★ GASのURL (最新版) ★★★
-        const gasUrl = "https://script.google.com/macros/s/AKfycbxG748E3HJpiUACWzkbOlekmXFsEhxB-c6zJI_XI50lbzigtm2S8LrkpRS3pUHcm7Kn/exec";
-
-        window.onload = function() {
-            fetchData();
-        };
-
-        function fetchData() {
-            const loading = document.getElementById('loading');
-            fetch(gasUrl)
-                .then(response => response.json())
-                .then(data => {
-                    loading.style.display = 'none';
-                    renderTable(data);
-                })
-                .catch(err => {
-                    console.error(err);
-                    loading.innerHTML = "読み込みに失敗しました。<br>再読み込みしてください。";
-                });
-        }
-
-        function renderTable(data) {
-            const table = document.getElementById('stockTable');
-            // ヘッダー作成
-            let html = `<thead><tr>
-                <th>日付</th>
-                <th>状態</th>
-                <th>コード</th>
-                <th>銘柄名</th>
-                <th>現在値</th>
-                <th>前日比</th>
-            </tr></thead><tbody>`;
-
-            // 1. データ取得（ヘッダー行を除く）
-            let rows = data.slice(1);
-
-            // 2. 並び替え (日付降順 -> S高が先 -> S安が後)
-            rows.sort((a, b) => {
-                // 日付比較 (新しい日付が上)
-                if (a[0] > b[0]) return -1;
-                if (a[0] < b[0]) return 1;
-
-                // 同じ日付なら状態比較 ("S高" が "S安" より先に来るように)
-                // 文字列比較だと "S安" > "S高" になる可能性があるため明示的に
-                const isHighA = a[1].includes('S高');
-                const isHighB = b[1].includes('S高');
-                if (isHighA && !isHighB) return -1; // AがS高なら上
-                if (!isHighA && isHighB) return 1;  // BがS高なら上
-                return 0; 
-            });
-
-            // 3. 行生成
-            let previousDate = "";
-
-            rows.forEach((row, index) => {
-                let dateStrRaw = row[0]; // "2025/12/25(木)"
-                
-                // 日付区切り線の判定
-                let rowClass = "";
-                if (index > 0 && dateStrRaw !== previousDate) {
-                    rowClass = "date-separator";
-                }
-                previousDate = dateStrRaw;
-
-                // 日付表示の短縮 (例: 12/25木)
-                let dateDisplay = dateStrRaw.replace(/\d{4}\//, '').replace(/[()]/g, '');
-
-                // 文字色判定
-                let statusColor = "text-black";
-                if(row[1].includes("S高")) statusColor = "text-red";
-                if(row[1].includes("S安")) statusColor = "text-blue";
-
-                let changeColor = "text-black";
-                if(String(row[5]).includes('+')) changeColor = "text-red";
-                if(String(row[5]).includes('-')) changeColor = "text-blue";
-
-                // リンク生成
-                // Yahooファイナンスアイコン (Y!)
-                let yahooLink = `<a href="https://finance.yahoo.co.jp/quote/${row[2]}.T" target="_blank" class="link-icon yahoo-btn">Y!</a>`;
-                
-                // 株探アイコン (銘柄名の横につけるグラフっぽいアイコン)
-                let kabutanLink = `<a href="https://kabutan.jp/stock/?code=${row[2]}" target="_blank" class="link-icon chart-icon">📈</a>`;
-
-                html += `<tr class="${rowClass}">
-                    <td>${dateDisplay}</td>
-                    <td class="${statusColor}">${row[1]}</td>
-                    <td>
-                        <span style="font-weight:bold; font-size:12px;">${row[2]}</span><br>
-                        ${yahooLink}
-                    </td>
-                    <td>
-                        ${kabutanLink} ${row[3]}
-                    </td>
-                    <td>${row[4]}</td>
-                    <td class="${changeColor}">${row[5]}</td>
-                </tr>`;
-            });
-
-            html += `</tbody>`;
-            table.innerHTML = html;
-        }
-    </script>
-</body>
-</html>
+        const gasUrl = "https://script.google.com/macros/s/AKfycbyc8KXuA7A_-4_LpTY6RO0Ip9r3ED_g9NtMDgtbzLgpH-hwtouK8db3Zp_8sls-jVVk/exec";
