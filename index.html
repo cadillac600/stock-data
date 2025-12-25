@@ -2,17 +2,24 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>株価情報まとめ</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>S高・S安 履歴</title>
+
+    <link rel="apple-touch-icon" href="icon.png">
+    <link rel="icon" href="icon.png">
+    <meta name="apple-mobile-web-app-title" content="S高履歴">
+
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@500;700&family=Noto+Sans+JP:wght@500;700&display=swap" rel="stylesheet">
+    
     <style>
         /* --- 全体設定 --- */
         body {
-            font-family: 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            font-family: 'Roboto', 'Noto Sans JP', sans-serif;
             margin: 0;
             padding: 0;
             background-color: #f5f5f5;
-            padding-top: 110px; /* ヘッダー固定分の余白 */
+            padding-top: 100px; /* ヘッダー固定分の余白 */
+            -webkit-text-size-adjust: 100%;
         }
 
         /* --- 固定ヘッダー（黒×黄色） --- */
@@ -30,8 +37,8 @@
             color: #FFD700; /* 黄色 */
             text-align: center;
             margin: 0;
-            padding: 12px 0 5px 0;
-            font-size: 16px;
+            padding: 10px 0 5px 0;
+            font-size: 15px;
             font-weight: bold;
             letter-spacing: 1px;
         }
@@ -46,11 +53,11 @@
 
         .tab-button {
             flex: 1;
-            padding: 12px 0;
+            padding: 10px 0;
             background: none;
             border: none;
             color: #888;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: bold;
             cursor: pointer;
             border-bottom: 3px solid transparent;
@@ -66,60 +73,83 @@
 
         /* --- コンテンツエリア --- */
         .content-area {
-            display: none; /* 初期状態は非表示 */
+            display: none;
             width: 100%;
         }
         .content-area.active {
-            display: block; /* アクティブなタブだけ表示 */
+            display: block;
         }
 
-        /* --- テーブルデザイン --- */
+        /* --- テーブル共通デザイン（スマホ最適化） --- */
         .table-container {
             width: 100%;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
             background-color: white;
+            overflow-x: hidden; /* 横スクロール禁止 */
         }
 
         table {
             width: 100%;
+            table-layout: fixed; /* 列幅固定 */
             border-collapse: collapse;
-            font-size: 13px;
-            white-space: nowrap;
+            font-size: 10px; /* 文字サイズ調整 */
         }
 
         th {
-            background-color: #e91e63; /* 共通の濃いピンクヘッダー */
+            background-color: #e91e63;
             color: white;
-            padding: 10px 8px;
+            padding: 8px 2px;
+            font-weight: bold;
+            text-align: center;
             position: sticky;
             top: 0;
+            white-space: nowrap;
         }
 
         td {
-            padding: 10px 8px;
+            padding: 8px 2px;
             border-bottom: 1px solid #ddd;
             vertical-align: middle;
+            line-height: 1.3;
         }
+
+        /* --- 列ごとの幅調整（iPhone15幅 390px想定） --- */
+        
+        /* 1列目: コード/日付 */
+        th:nth-child(1), td:nth-child(1) { width: 12%; text-align: center; }
+
+        /* 2列目: 銘柄名/状態 */
+        /* S高履歴とランキングで構成が少し違うため微調整 */
+        
+        /* ランキング用: 2列目は銘柄名 */
+        #table-ranking th:nth-child(2), #table-ranking td:nth-child(2) { 
+            width: 24%; 
+            text-align: left; 
+            white-space: normal; 
+            word-break: break-all;
+            font-weight: bold;
+        }
+
+        /* 3列目以降（数値） */
+        th:nth-child(3), td:nth-child(3) { width: 15%; text-align: right; letter-spacing: -0.5px; }
+        th:nth-child(4), td:nth-child(4) { width: 14%; text-align: right; letter-spacing: -0.5px; }
+        th:nth-child(5), td:nth-child(5) { width: 15%; text-align: right; letter-spacing: -0.5px; }
+        th:nth-child(6), td:nth-child(6) { width: 20%; text-align: right; font-weight: 500; }
 
         /* シマウマ模様 */
         tr:nth-child(even) { background-color: #fce4ec; }
         tr:nth-child(odd) { background-color: #ffffff; }
 
-        /* 文字色・配置 */
-        .text-center { text-align: center; }
-        .text-left   { text-align: left; }
-        .text-right  { text-align: right; }
+        /* 文字色 */
         .text-red    { color: #cc0000; font-weight: bold; }
         .text-blue   { color: #0000cc; font-weight: bold; }
         .text-black  { color: #000000; }
 
-        /* 更新日時など */
+        /* 更新日時 */
         .info-bar {
             text-align: right;
-            font-size: 11px;
+            font-size: 10px;
             color: #666;
-            padding: 5px 10px;
+            padding: 4px 10px;
         }
 
         /* ローディング */
@@ -127,7 +157,7 @@
             text-align: center;
             padding: 50px;
             color: #666;
-            font-weight: bold;
+            font-size: 12px;
         }
     </style>
 </head>
@@ -164,13 +194,13 @@
 
     <script>
         // ===============================================
-        // ★★★ 設定エリア（ここだけ書き換えて！） ★★★
+        // ★★★ 設定エリア（URL更新済み） ★★★
         // ===============================================
         
-        // 1. S高履歴のGASウェブアプリURL（あなたのGASのURL）
+        // 1. S高履歴のGASウェブアプリURL (更新しました！)
         const sHighGasUrl = "https://script.google.com/macros/s/AKfycbxG748E3HJpiUACWzkbOlekmXFsEhxB-c6zJI_XI50lbzigtm2S8LrkpRS3pUHcm7Kn/exec";
 
-        // 2. 活況銘柄のCSV URL（変更不要）
+        // 2. 活況銘柄のCSV URL（変更なし）
         const rankingUrls = {
             'all': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQSFL74v22ZNoGTNvcwbw9WnYRw9Hdl53zsSOE8Wwy6Jl76aDFxro3RHR-KhULyzLU0f4byxOEmX7Ef/pub?gid=0&single=true&output=csv',
             'std': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQSFL74v22ZNoGTNvcwbw9WnYRw9Hdl53zsSOE8Wwy6Jl76aDFxro3RHR-KhULyzLU0f4byxOEmX7Ef/pub?gid=1953765914&single=true&output=csv',
@@ -179,18 +209,14 @@
 
         // ===============================================
 
-        // 初回読み込み
         window.onload = function() {
-            loadSHighData(); // S高データを読みに行く
+            loadSHighData();
         };
 
-        // タブ切り替え処理
         function switchTab(mode) {
-            // タブの見た目変更
             document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
             event.target.classList.add('active');
 
-            // 表示エリア切り替え
             const areaSdaka = document.getElementById('area-sdaka');
             const areaRanking = document.getElementById('area-ranking');
             const pageTitle = document.getElementById('pageTitle');
@@ -203,67 +229,66 @@
                 areaSdaka.classList.remove('active');
                 areaRanking.classList.add('active');
                 pageTitle.innerText = "本日活況銘柄速報";
-                // 活況データを読み込む
                 loadRankingData(mode);
             }
             window.scrollTo(0, 0);
         }
 
-        // --- A. S高データを読み込んで表示する関数 ---
+        // --- A. S高データ処理 ---
         function loadSHighData() {
-            const table = document.getElementById('table-sdaka');
             const loading = document.getElementById('loading-sdaka');
-            
             fetch(sHighGasUrl)
-                .then(response => response.json())
+                .then(r => r.json())
                 .then(data => {
                     loading.style.display = 'none';
                     renderSHighTable(data);
                 })
                 .catch(err => {
-                    loading.innerHTML = "読み込み失敗<br>GASのURLを確認してください";
                     console.error(err);
+                    loading.innerHTML = "読み込み失敗<br>URLを確認してください";
                 });
         }
 
         function renderSHighTable(data) {
             const table = document.getElementById('table-sdaka');
+            // S高用ヘッダー
             let html = `<thead><tr>
-                <th>日付</th><th>状態</th><th>コード</th><th>銘柄名</th><th>現在値</th><th>前日比</th>
+                <th style="width:12%">日付</th>
+                <th style="width:10%">状態</th>
+                <th style="width:12%">CD</th>
+                <th style="width:24%">銘柄名</th>
+                <th style="width:18%">現在値</th>
+                <th style="width:15%">前日比</th>
             </tr></thead><tbody>`;
 
-            // データ行のループ (新しい日付順にするため reverse するか、GAS順のままならそのまま)
-            // GASで下に追加しているなら、reverse()すると最新が上に来ます
             const rows = data.slice(1).reverse(); 
 
             rows.forEach(row => {
-                // row: [日付, 状態, コード, 銘柄, 現在値, 前日比]
-                // 状態(S高/S安)の色分け
                 let statusColor = "text-black";
                 if(row[1].includes("S高")) statusColor = "text-red";
                 if(row[1].includes("S安")) statusColor = "text-blue";
 
-                // 前日比の色分け
                 let changeColor = "text-black";
                 if(String(row[5]).includes('+')) changeColor = "text-red";
                 if(String(row[5]).includes('-')) changeColor = "text-blue";
+                
+                // 日付を短縮 (2025/12/25 -> 12/25)
+                let dateStr = row[0].replace(/\d{4}\//, '');
 
                 html += `<tr>
-                    <td class="text-center">${row[0]}</td>
-                    <td class="text-center ${statusColor}">${row[1]}</td>
-                    <td class="text-center">${row[2]}</td>
-                    <td class="text-left">${row[3]}</td>
-                    <td class="text-right">${row[4]}</td>
-                    <td class="text-right ${changeColor}">${row[5]}</td>
+                    <td style="text-align:center">${dateStr}</td>
+                    <td style="text-align:center" class="${statusColor}">${row[1]}</td>
+                    <td style="text-align:center">${row[2]}</td>
+                    <td style="text-align:left; white-space:normal; font-weight:bold; word-break:break-all;">${row[3]}</td>
+                    <td style="text-align:right">${row[4]}</td>
+                    <td style="text-align:right" class="${changeColor}">${row[5]}</td>
                 </tr>`;
             });
-
             html += `</tbody>`;
             table.innerHTML = html;
         }
 
-
-        // --- B. 活況銘柄データを読み込んで表示する関数 ---
+        // --- B. 活況銘柄データ処理 ---
         function loadRankingData(tabName) {
             const url = rankingUrls[tabName];
             const loading = document.getElementById('loading-ranking');
@@ -277,8 +302,7 @@
             updateTime.innerText = '';
 
             fetch(url).then(r => r.text()).then(t => {
-                const rows = parseCSV(t);
-                renderRankingTable(rows);
+                renderRankingTable(parseCSV(t));
                 loading.style.display = 'none';
             });
         }
@@ -291,8 +315,14 @@
             const h = data[0];
             if(data.length > 1) document.getElementById('update-time-ranking').innerText = "最終更新: " + data[1][0];
             
+            // ヘッダー生成（項目名を短縮して表示）
+            let displayHeaders = ["", "CD", "銘柄", "回数", "%", "幅", "株価"];
+            
             let hHTML = '';
-            for (let i = 1; i < h.length; i++) hHTML += `<th>${h[i]}</th>`;
+            // i=1(コード)から開始
+            for (let i = 1; i < h.length; i++) {
+                hHTML += `<th>${displayHeaders[i]}</th>`;
+            }
             th.innerHTML = hHTML;
 
             let bHTML = '';
@@ -300,12 +330,10 @@
                 const r = data[i]; if (r.length < h.length) continue;
                 bHTML += `<tr>`;
                 for (let j = 1; j < r.length; j++) {
-                    let cls = "text-right text-black";
-                    if (j === 1) cls = "text-center text-black";
-                    if (j === 2) cls = "text-left text-black";
-                    
-                    if (r[j].includes('+')) cls = cls.replace('text-black', 'text-red');
-                    else if (r[j].includes('-') && !r[j].includes('－')) cls = cls.replace('text-black', 'text-blue');
+                    let cls = "";
+                    if (r[j].includes('+')) cls = "text-red";
+                    else if (r[j].includes('-') && !r[j].includes('－')) cls = "text-blue";
+                    else cls = "text-black";
                     
                     bHTML += `<td class="${cls}">${r[j]}</td>`;
                 }
@@ -319,13 +347,4 @@
             for (let i = 0; i < text.length; i++) {
                 const c = text[i], n = text[i+1];
                 if (c === '"') { if (inQuote && n === '"') { cell += '"'; i++; } else { inQuote = !inQuote; } }
-                else if (c === ',' && !inQuote) { row.push(cell); cell = ""; }
-                else if ((c === '\r' || c === '\n') && !inQuote) { if (cell||row.length) { row.push(cell); rows.push(row); } row=[]; cell=""; if(c==='\r'&&n==='\n')i++; }
-                else { cell += c; }
-            }
-            if (cell || row.length) { row.push(cell); rows.push(row); }
-            return rows;
-        }
-    </script>
-</body>
-</html>
+                else if (c === ',' && !inQuote) { row.push(cell
