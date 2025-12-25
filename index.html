@@ -3,269 +3,154 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>S高・活況銘柄ビューア</title>
-<link rel="icon" href="icon.png">
-
+<title>S高・活況データ（診断モード）</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
-  body { margin: 0; padding: 10px; font-family: 'Roboto', sans-serif; background: #f1f3f4; color: #333; }
-  a { text-decoration: none; color: inherit; }
+  body { font-family: sans-serif; background: #f0f0f0; padding: 10px; margin: 0; }
+  h3 { margin: 0 0 10px 0; font-size: 16px; }
   
-  /* ヘッダー */
-  .app-header { display: flex; align-items: center; margin-bottom: 15px; }
-  .app-title { font-size: 18px; font-weight: bold; margin: 0 10px; }
-  .icon-img { width: 24px; height: 24px; object-fit: contain; }
-
-  /* 切り替えタブ */
-  .main-nav { display: flex; gap: 8px; margin-bottom: 12px; }
-  .nav-item {
-    flex: 1; padding: 12px 0; border-radius: 8px; border: none;
-    font-size: 14px; font-weight: bold; color: #666; background: #e0e0e0;
-    cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 3px rgba(0,0,0,0.1);
-  }
-  .nav-item.shigh.active { background: #e91e63; color: white; transform: translateY(1px); }
-  .nav-item.active-stock.active { background: #ff9800; color: white; transform: translateY(1px); }
-
-  /* サブメニュー */
-  .sub-nav { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; margin-bottom: 10px; scrollbar-width: none; }
-  .sub-nav::-webkit-scrollbar { display: none; }
-  .pill-btn {
-    padding: 6px 14px; background: white; border: 1px solid #ccc; border-radius: 20px;
-    font-size: 12px; white-space: nowrap; cursor: pointer; color: #555;
-  }
-  .pill-btn.active { background: #333; color: white; border-color: #333; font-weight: bold; }
-
-  /* 凡例 */
-  .links-area { background: white; padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; font-size: 11px; display: flex; flex-wrap: wrap; gap: 12px; border: 1px solid #ddd; }
-  .link-item { display: flex; align-items: center; }
-  .small-icon { width: 16px; height: 16px; margin-right: 4px; border-radius: 3px; }
-
-  /* テーブル */
-  .table-wrap { background: white; border-radius: 4px; border: 1px solid #ddd; overflow-x: hidden; min-height: 200px; }
-  table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
-  th { background: #f5f5f5; color: #333; padding: 10px 4px; border-bottom: 2px solid #ddd; font-weight: bold; white-space: nowrap; }
-  body.mode-shigh th { background: #e91e63; color: white; border-color: #c2185b; }
-  body.mode-active th { background: #ff9800; color: white; border-color: #f57c00; }
-  td { padding: 8px 4px; border-bottom: 1px solid #eee; text-align: center; vertical-align: middle; word-wrap: break-word; }
-  
-  .text-red { color: #d32f2f; font-weight: bold; }
-  .text-blue { color: #1976d2; font-weight: bold; }
-  .date-sep td { border-top: 2px solid #999 !important; }
-  .hidden { display: none !important; }
-
-  /* デバッグ用表示エリア */
-  #debug-log {
-    margin-top: 20px; padding: 10px; background: #333; color: #0f0; 
-    font-family: monospace; font-size: 10px; border-radius: 4px; display: none;
+  /* 診断ログ表示エリア */
+  #debug-console {
+    background: #222; color: #0f0; font-family: monospace; font-size: 11px;
+    padding: 10px; border-radius: 4px; margin-bottom: 20px;
     white-space: pre-wrap; word-break: break-all;
+    min-height: 100px; border: 2px solid #555;
   }
+  
+  /* テーブルエリア */
+  .table-wrap { background: white; padding: 5px; border-radius: 4px; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; white-space: nowrap; }
+  th { background: #ddd; padding: 5px; border: 1px solid #ccc; }
+  td { padding: 5px; border: 1px solid #ccc; text-align: center; }
+  .error { color: red; font-weight: bold; }
+  
+  button { padding: 10px 20px; font-weight: bold; cursor: pointer; margin-bottom: 10px; }
 </style>
 </head>
-<body class="mode-shigh">
+<body>
 
-<div class="app-header">
-  <img src="sd.jpg" class="icon-img" onerror="this.style.display='none'">
-  <div class="app-title">株式データビューア</div>
-  <img src="ss.jpg" class="icon-img" onerror="this.style.display='none'">
-</div>
+<h3>🔍 データ読み込み診断</h3>
 
-<div class="main-nav">
-  <button class="nav-item shigh active" onclick="switchMainMode('shigh')">📈 S高履歴</button>
-  <button class="nav-item active-stock" onclick="switchMainMode('active')">🔥 活況銘柄</button>
-</div>
+<div id="debug-console">ここに診断ログが表示されます...</div>
 
-<div class="links-area">
-  <div class="link-item"><img src="bbs.jpg" class="small-icon" onerror="this.style.display='none'">掲示板</div>
-  <div class="link-item"><img src="kabu.jpg" class="small-icon" onerror="this.style.display='none'">株探</div>
-  <div class="link-item" style="width:100%; border-top:1px dashed #eee; padding-top:4px; margin-top:-4px;">
-    <img src="x.jpg" class="small-icon" onerror="this.style.display='none'">X(Twitter)検索
-  </div>
-</div>
-
-<div id="sub-active" class="sub-nav hidden">
-  <button class="pill-btn active" onclick="loadActiveData('all', this)">全市場</button>
-  <button class="pill-btn" onclick="loadActiveData('std', this)">スタンダード</button>
-  <button class="pill-btn" onclick="loadActiveData('grw', this)">グロース</button>
-</div>
-
-<div id="sub-shigh" class="sub-nav"></div>
+<button onclick="runDiagnosis()">🔄 再読み込み</button>
 
 <div class="table-wrap">
-  <div id="loading" style="padding:40px; text-align:center;">データを読み込んでいます...</div>
-  <table id="dataTable" style="display:none;">
-    <thead id="tableHead"></thead>
-    <tbody id="tableBody"></tbody>
+  <table id="resultTable">
+    <thead id="thead"></thead>
+    <tbody id="tbody"></tbody>
   </table>
 </div>
 
-<div id="debug-log"></div>
-
 <script>
-  // ▼ ID設定（直前のやり取りで確認した正しいID）
+  // ▼ ID設定
   const ID_SHIGH  = "1GomxLhDw7ukSwr4PuhYrhCdncvIx2Eb5uznl1bzgeLk"; 
   const ID_ACTIVE = "1DiJXYQ8FlHk5_2GEJDmVET8gmHvqwmgTeUXWo5oCmRs"; 
 
-  const GIDS = {
-    shigh: "0",
-    active_all: "0",
-    active_std: "1953765914",
-    active_grw: "1943516156"
-  };
-
-  let currentMode = 'shigh'; 
-  let cachedSHighData = [];
-
-  window.onload = () => { switchMainMode('shigh'); };
-
+  // ログ出力関数
   function log(msg) {
-    const el = document.getElementById('debug-log');
-    el.style.display = 'block';
-    el.textContent += msg + "\n";
+    const el = document.getElementById('debug-console');
+    const time = new Date().toLocaleTimeString();
+    el.innerHTML += `[${time}] ${msg}\n`;
     console.log(msg);
   }
 
-  function switchMainMode(mode) {
-    currentMode = mode;
-    document.body.className = `mode-${mode}`;
+  // 診断実行
+  async function runDiagnosis() {
+    document.getElementById('debug-console').innerHTML = "--- 診断開始 ---\n";
+    document.getElementById('tbody').innerHTML = "";
+    
+    // 1. 活況銘柄チェック
+    log("ステップ1: 活況銘柄(Active)へのアクセステスト...");
+    await testFetch(ID_ACTIVE, "0", "活況銘柄");
 
-    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
-    document.querySelector(`.nav-item.${mode === 'shigh' ? 'shigh' : 'active-stock'}`).classList.add('active');
+    log("\n-----------------------------\n");
 
-    document.getElementById('sub-active').classList.toggle('hidden', mode !== 'active');
-    document.getElementById('sub-shigh').classList.toggle('hidden', mode !== 'shigh');
-
-    if(mode === 'shigh') {
-      if(cachedSHighData.length > 0) {
-        renderSHighTabs(cachedSHighData);
-        filterSHighByMonth('all');
-      } else {
-        loadSHighData();
-      }
-    } else {
-      loadActiveData('all');
-    }
+    // 2. S高履歴チェック
+    log("ステップ2: S高履歴(S-High)へのアクセステスト...");
+    await testFetch(ID_SHIGH, "0", "S高履歴");
   }
 
-  async function fetchCSV(sheetId, gid) {
-    document.getElementById('loading').style.display = 'block';
-    document.getElementById('dataTable').style.display = 'none';
-    
-    // t=Date.now() でキャッシュ回避
+  async function testFetch(sheetId, gid, name) {
     const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}&t=${Date.now()}`;
     
     try {
       const res = await fetch(url);
-      if(!res.ok) throw new Error("通信エラー: " + res.status);
+      log(`[${name}] 通信ステータス: ${res.status} ${res.statusText}`);
+      
+      if (!res.ok) {
+        log(`[${name}] ❌ エラー: 通信に失敗しました`);
+        return;
+      }
+
       const text = await res.text();
       
-      if(text.includes("<!DOCTYPE html>")) {
-         throw new Error("データではなくログイン画面が返されました。Web公開設定を確認してください。");
+      // HTMLが返ってきていないかチェック
+      if (text.includes("<!DOCTYPE html>") || text.includes("<html")) {
+        log(`[${name}] ❌ エラー: データではなくログイン画面(HTML)が返されました。`);
+        log(`👉 原因: 「ファイル > 共有 > Webに公開」がまだできていない可能性があります。`);
+        return;
       }
-      return parseCSV(text);
-    } catch(e) {
-      document.getElementById('loading').innerHTML = `<span style="color:red; font-weight:bold;">読み込みエラーが発生しました</span><br><br>詳細: ${e.message}`;
-      log(`Fetch Error [${sheetId}]: ${e.message}`);
-      return null;
-    }
-  }
 
-  function parseCSV(text) {
-    const lines = text.trim().split('\n');
-    const data = [];
-    for(let i=1; i<lines.length; i++) {
-      // カンマ区切り、ダブルクォート除去、円マーク除去
-      const row = lines[i].split(',').map(cell => 
-        cell.replace(/^"|"$/g, '').replace(/[円¥,]/g, '')
-      );
-      // 空行チェック
-      if(row.length > 1) {
-          if(row[1]) row[1] = row[1].replace('.0', ''); // コードの.0除去
-          data.push(row);
+      log(`[${name}] ✅ データ取得成功！ (文字数: ${text.length})`);
+      
+      // 中身の解析
+      const lines = text.trim().split('\n');
+      log(`[${name}] 行数: ${lines.length}行`);
+      
+      if (lines.length > 0) {
+        // 1行目（ヘッダー）の確認
+        const header = lines[0];
+        log(`[${name}] ヘッダー行(生データ): ${header}`);
+        
+        // 2行目（データ）の確認
+        if (lines.length > 1) {
+            const row1 = lines[1];
+            log(`[${name}] データ1行目(生データ): ${row1}`);
+            
+            // パースしてみる
+            const parsed = row1.split(',').map(s => s.replace(/^"|"$/g, ''));
+            log(`[${name}] 列数判定: ${parsed.length}列`);
+            parsed.forEach((col, idx) => {
+                log(`  列[${idx}]: ${col}`);
+            });
+            
+            // テーブルに描画してみる
+            renderSample(lines, name);
+        }
       }
+
+    } catch (e) {
+      log(`[${name}] ❌ 致命的エラー: ${e.message}`);
     }
-    // 日付降順ソート
-    return data.sort((a, b) => a[0] < b[0] ? 1 : -1);
   }
 
-  // --- S高履歴ロジック ---
-  async function loadSHighData() {
-    const data = await fetchCSV(ID_SHIGH, GIDS.shigh);
-    if(!data) return;
-    
-    // データの中身をチェックして列数をログ出力
-    log(`S高データ取得成功: ${data.length}件`);
-    if(data.length > 0) log(`S高列数: ${data[0].length} / 先頭行: ${JSON.stringify(data[0])}`);
+  function renderSample(lines, name) {
+    const tbody = document.getElementById('tbody');
+    // ヘッダー追加
+    const row = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = 10;
+    td.style.background = "#333";
+    td.style.color = "#fff";
+    td.textContent = `▼ ${name} のデータプレビュー (最初の3行) ▼`;
+    row.appendChild(td);
+    tbody.appendChild(row);
 
-    cachedSHighData = data;
-    renderSHighTabs(data);
-    filterSHighByMonth('all');
-  }
-
-  function renderSHighTabs(rows) {
-    const container = document.getElementById('sub-shigh');
-    container.innerHTML = "";
-    const months = new Set();
-    rows.forEach(r => {
-      const m = r[0].match(/^(\d{4}\/\d{1,2})/);
-      if(m) months.add(m[1]);
-    });
-    createPillBtn(container, 'すべて', true, () => filterSHighByMonth('all'));
-    months.forEach(m => createPillBtn(container, m, false, () => filterSHighByMonth(m)));
-  }
-
-  function filterSHighByMonth(month) {
-    const filtered = (month === 'all') ? cachedSHighData : cachedSHighData.filter(r => r[0].startsWith(month));
-    const thead = document.getElementById('tableHead');
-    // S高用ヘッダー
-    thead.innerHTML = `<tr><th style="width:16%">日付</th><th style="width:10%">状態</th><th style="width:16%">コード</th><th>銘柄名</th><th style="width:18%">株価</th><th style="width:18%">前日比</th></tr>`;
-    renderTableBody(filtered, 'shigh');
-  }
-
-  // --- 活況銘柄ロジック ---
-  async function loadActiveData(type, btn) {
-    if(btn) {
-      document.querySelectorAll('#sub-active .pill-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
+    // データ表示（最大3行）
+    for(let i=0; i<Math.min(lines.length, 4); i++) {
+        const tr = document.createElement('tr');
+        const cells = lines[i].split(',');
+        cells.forEach(c => {
+            const td = document.createElement('td');
+            td.textContent = c.replace(/^"|"$/g, '');
+            tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
     }
-    const data = await fetchCSV(ID_ACTIVE, GIDS[`active_${type}`]);
-    if(!data) return;
-
-    log(`活況データ取得成功(${type}): ${data.length}件`);
-
-    const thead = document.getElementById('tableHead');
-    // 活況用ヘッダー
-    thead.innerHTML = `<tr><th style="width:16%">日付</th><th style="width:16%">コード</th><th>銘柄名</th><th style="width:18%">株価</th><th style="width:18%">前日比</th></tr>`;
-    renderTableBody(data, 'active');
   }
 
-  function renderTableBody(rows, mode) {
-    const tbody = document.getElementById('tableBody');
-    tbody.innerHTML = "";
-    document.getElementById('loading').style.display = 'none';
-    document.getElementById('dataTable').style.display = 'table';
-
-    if(rows.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6">データがありません</td></tr>`;
-      return;
-    }
-
-    rows.forEach((row, idx) => {
-      const tr = document.createElement('tr');
-      if(idx > 0 && row[0] !== rows[idx-1][0]) tr.classList.add('date-sep');
-      if(idx % 2 === 0) tr.style.backgroundColor = "#fafafa";
-
-      // ▼▼▼ 列の割り当て（ここが重要） ▼▼▼
-      let dateVal, statusVal, codeVal, nameVal, priceVal, changeVal;
-
-      try {
-        dateVal = row[0].replace(/^\d{4}\//, ''); // 日付は常に先頭
-
-        if(mode === 'shigh') {
-           // S高シートの列構造（推定）
-           // [0]日付 [1]状態 [2]コード [3]名 ... [5]前日比 [6]株価 ??
-           // ※もし列が足りない場合のエラー回避を入れています
-           statusVal = row[1] || "-";
-           codeVal   = row[2] || "----";
-           nameVal   = row[3] || "名称不明";
-           // 後ろから取る方式に変更（間に余計な列があっても大丈夫なように）
-           priceVal  =
+  // 自動実行
+  window.onload = runDiagnosis;
+</script>
+</body>
+</html>
