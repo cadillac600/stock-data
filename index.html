@@ -3,326 +3,463 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>S高・活況データビューア</title>
+<title>S高・S安 履歴</title>
+
+<link rel="apple-touch-icon" href="icon.png">
 <link rel="icon" href="icon.png">
+<meta name="apple-mobile-web-app-title" content="S高履歴">
 
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
-  body { margin: 0; padding: 10px; font-family: 'Roboto', sans-serif; background: #f1f3f4; color: #333; }
-  a { text-decoration: none; color: inherit; }
-  
-  /* ヘッダー */
-  .app-header { display: flex; align-items: center; margin-bottom: 15px; }
-  .app-title { font-size: 18px; font-weight: bold; margin: 0 10px; }
-  .icon-img { width: 24px; height: 24px; object-fit: contain; }
 
-  /* 切り替えタブ */
-  .main-nav { display: flex; gap: 8px; margin-bottom: 12px; }
-  .nav-item {
-    flex: 1; padding: 12px 0; border-radius: 8px; border: none;
-    font-size: 14px; font-weight: bold; color: #666; background: #e0e0e0;
-    cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 3px rgba(0,0,0,0.1);
+  body {
+    margin: 0;
+    padding: 10px;
+    font-family: 'Roboto', Helvetica, Arial, sans-serif;
+    background-color: #f1f3f4;
   }
-  .nav-item.shigh.active { background: #e91e63; color: white; transform: translateY(1px); }
-  .nav-item.active-stock.active { background: #ff9800; color: white; transform: translateY(1px); }
 
-  /* サブメニュー */
-  .sub-nav { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; margin-bottom: 10px; scrollbar-width: none; }
-  .sub-nav::-webkit-scrollbar { display: none; }
-  .pill-btn {
-    padding: 6px 14px; background: white; border: 1px solid #ccc; border-radius: 20px;
-    font-size: 12px; white-space: nowrap; cursor: pointer; color: #555;
+  /* ▼▼▼ タイトルエリアのデザイン ▼▼▼ */
+  .title-area {
+    display: flex;
+    align-items: center; /* 上下中央揃え */
+    margin: 10px 0 15px 5px;
   }
-  .pill-btn.active { background: #333; color: white; border-color: #333; font-weight: bold; }
 
-  /* 凡例 */
-  .links-area { background: white; padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; font-size: 11px; display: flex; flex-wrap: wrap; gap: 12px; border: 1px solid #ddd; }
-  .link-item { display: flex; align-items: center; }
-  .small-icon { width: 16px; height: 16px; margin-right: 4px; border-radius: 3px; }
+  .title-area h3 {
+    margin: 0;
+    color: #202124;
+    font-size: 18px;
+    line-height: 1;
+  }
 
-  /* テーブル */
-  .table-wrap { background: white; border-radius: 4px; border: 1px solid #ddd; overflow-x: hidden; min-height: 200px; }
-  table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
-  th { background: #f5f5f5; color: #333; padding: 10px 4px; border-bottom: 2px solid #ddd; font-weight: bold; white-space: nowrap; }
-  body.mode-shigh th { background: #e91e63; color: white; border-color: #c2185b; }
-  body.mode-active th { background: #ff9800; color: white; border-color: #f57c00; }
-  td { padding: 8px 4px; border-bottom: 1px solid #eee; text-align: center; vertical-align: middle; word-wrap: break-word; }
+  .title-img-left {
+    width: 24px;
+    height: 24px;
+    margin-right: 8px;
+    object-fit: contain;
+  }
+
+  .title-img-right {
+    width: 24px;
+    height: 24px;
+    margin-left: 8px;
+    object-fit: contain;
+  }
+  /* ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ */
+
+  /* リンクのデザイン */
+  a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: rgba(0,0,0,0.3);
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+  }
+
+  /* 凡例エリア */
+  .legend-area {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(60,64,67,0.1);
+    font-size: 11px;
+    color: #444;
+    border: 1px solid #dadce0;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    width: 48%; 
+    box-sizing: border-box;
+  }
   
-  .text-red { color: #d32f2f; font-weight: bold; }
-  .text-blue { color: #1976d2; font-weight: bold; }
-  .date-sep td { border-top: 2px solid #999 !important; }
-  .hidden { display: none !important; }
+  .legend-item.full-width {
+    width: 100%;
+    margin-top: 4px;
+    border-top: 1px dashed #eee;
+    padding-top: 6px;
+  }
 
-  #debug-log { margin-top: 20px; padding: 10px; background: #333; color: #fa0; font-size: 10px; border-radius: 4px; display: none; }
+  .legend-icon-img {
+    width: 16px;
+    height: 16px;
+    object-fit: cover;
+    border-radius: 3px;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+
+  .legend-note {
+    color: #888;
+    margin-left: 5px;
+    font-size: 10px;
+  }
+
+  /* アイコンの共通デザイン */
+  .bbs-icon, .kabutan-icon, .x-icon {
+    width: 18px;          
+    height: 18px;         
+    object-fit: cover;    
+    border-radius: 3px;   
+    vertical-align: middle;
+  }
+
+  /* 個別の位置調整 */
+  .x-icon { display: block; margin: 4px auto 0; }
+  .bbs-icon { margin-left: 5px; }
+  .kabutan-icon { margin-right: 5px; }
+
+
+  /* タブボタンのデザイン */
+  .tabs {
+    display: flex;
+    overflow-x: auto;
+    white-space: nowrap;
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    gap: 8px;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+
+  .tab-button {
+    background-color: #fff;
+    border: 1px solid #dadce0;
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 13px;
+    cursor: pointer;
+    color: #5f6368;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+
+  .tab-button.active {
+    background-color: #e91e63;
+    color: white;
+    border-color: #e91e63;
+  }
+
+  /* 表のデザイン */
+  .stock-table-container {
+    background: white;
+    width: 100%;
+    overflow-x: hidden;
+    border: 1px solid #dadce0;
+    box-shadow: 0 1px 2px rgba(60,64,67,0.3);
+    border-radius: 4px;
+  }
+  
+  table.stock-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    table-layout: fixed;
+  }
+
+  table.stock-table th {
+    background-color: #e91e63;
+    color: white;
+    padding: 8px 2px;
+    font-weight: bold;
+    text-align: center;
+    border: 1px solid #c2185b;
+    white-space: nowrap;
+  }
+
+  table.stock-table td {
+    padding: 8px 2px;
+    border: 1px solid #e0e0e0;
+    color: #333;
+    vertical-align: middle;
+    text-align: center;
+    word-wrap: break-word;
+  }
+
+  table.stock-table td:nth-child(4) {
+    text-align: left;
+    white-space: normal;
+    padding-left: 5px;
+  }
+
+  table.stock-table tr:nth-child(even) {
+    background-color: #fff0f5;
+  }
+
+  tr.date-changed td {
+    border-top: 2px solid #888 !important; 
+  }
+
+  .text-red { color: #d32f2f !important; font-weight: bold; }
+  .text-blue { color: #1976d2 !important; font-weight: bold; }
+
+  @media screen and (max-width: 600px) {
+    table.stock-table { font-size: 11px; }
+    table.stock-table td:nth-child(1) {
+      white-space: nowrap;
+      font-size: 10px;
+      letter-spacing: -0.5px;
+    }
+    table.stock-table th:nth-child(1) { width: 15%; }
+    table.stock-table th:nth-child(2) { width: 9%; }
+    table.stock-table th:nth-child(3) { width: 14%; }
+    table.stock-table th:nth-child(4) { width: auto; }
+    table.stock-table th:nth-child(5) { width: 15%; }
+    table.stock-table th:nth-child(6) { width: 13%; }
+  }
+
+  #loading {
+    text-align: center;
+    padding: 30px;
+    color: #5f6368;
+    font-size: 14px;
+  }
 </style>
 </head>
-<body class="mode-shigh">
+<body>
 
-<div class="app-header">
-  <img src="sd.jpg" class="icon-img" onerror="this.style.display='none'">
-  <div class="app-title">株式データビューア</div>
-  <img src="ss.jpg" class="icon-img" onerror="this.style.display='none'">
+<div class="title-area">
+  <img src="sd.jpg" class="title-img-left">
+  <h3>ストップ高・ストップ安 履歴</h3>
+  <img src="ss.jpg" class="title-img-right">
 </div>
+<div class="tabs" id="monthTabs"></div>
 
-<div class="main-nav">
-  <button class="nav-item shigh active" onclick="switchMainMode('shigh')">📈 S高履歴</button>
-  <button class="nav-item active-stock" onclick="switchMainMode('active')">🔥 活況銘柄</button>
-</div>
-
-<div class="links-area">
-  <div class="link-item"><img src="bbs.jpg" class="small-icon" onerror="this.style.display='none'">掲示板</div>
-  <div class="link-item"><img src="kabu.jpg" class="small-icon" onerror="this.style.display='none'">株探</div>
-  <div class="link-item" style="width:100%; border-top:1px dashed #eee; padding-top:4px; margin-top:-4px;">
-    <img src="x.jpg" class="small-icon" onerror="this.style.display='none'">X(Twitter)検索
+<div class="legend-area">
+  <div class="legend-item">
+    <img src="bbs.jpg" class="legend-icon-img"> 掲示板へ
+  </div>
+  <div class="legend-item">
+    <img src="kabu.jpg" class="legend-icon-img"> 株探ページへ
+  </div>
+  <div class="legend-item full-width">
+    <img src="x.jpg" class="legend-icon-img"> X検索 <span class="legend-note">※最新タブ「コード 株」で検索されます。スマホは切替必要</span>
   </div>
 </div>
 
-<div id="sub-active" class="sub-nav hidden">
-  <button class="pill-btn active" onclick="loadActiveData('all', this)">全市場</button>
-  <button class="pill-btn" onclick="loadActiveData('std', this)">スタンダード</button>
-  <button class="pill-btn" onclick="loadActiveData('grw', this)">グロース</button>
-</div>
-
-<div id="sub-shigh" class="sub-nav"></div>
-
-<div class="table-wrap">
-  <div id="loading" style="padding:40px; text-align:center;">データを読み込んでいます...</div>
-  <table id="dataTable" style="display:none;">
+<div class="stock-table-container">
+  <div id="loading">データを読み込んでいます...</div>
+  <table class="stock-table" id="stockTable" style="display:none;">
     <thead id="tableHead"></thead>
     <tbody id="tableBody"></tbody>
   </table>
 </div>
 
-<div id="debug-log"></div>
-
 <script>
-  // ▼ ID設定
-  const ID_SHIGH  = "1GomxLhDw7ukSwr4PuhYrhCdncvIx2Eb5uznl1bzgeLk"; 
-  const ID_ACTIVE = "1DiJXYQ8FlHk5_2GEJDmVET8gmHvqwmgTeUXWo5oCmRs"; 
+  // ▼▼▼ あなたのGAS URL ▼▼▼
+  const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxG748E3HJpiUACWzkbOlekmXFsEhxB-c6zJI_XI50lbzigtm2S8LrkpRS3pUHcm7Kn/exec"; 
+  // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
-  const GIDS = {
-    shigh: "0",
-    active_all: "0",
-    active_std: "1953765914",
-    active_grw: "1943516156"
-  };
+  let allData = [];
 
-  let currentMode = 'shigh'; 
-  let cachedSHighData = [];
-
-  window.onload = () => { switchMainMode('shigh'); };
-
-  function switchMainMode(mode) {
-    currentMode = mode;
-    document.body.className = `mode-${mode}`;
-
-    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
-    document.querySelector(`.nav-item.${mode === 'shigh' ? 'shigh' : 'active-stock'}`).classList.add('active');
-
-    document.getElementById('sub-active').classList.toggle('hidden', mode !== 'active');
-    document.getElementById('sub-shigh').classList.toggle('hidden', mode !== 'shigh');
-
-    if(mode === 'shigh') {
-      if(cachedSHighData.length > 0) {
-        renderSHighTabs(cachedSHighData);
-        filterSHighByMonth('all');
-      } else {
-        loadSHighData();
-      }
-    } else {
-      loadActiveData('all');
-    }
-  }
-
-  // ★変更点：中継サーバー(allorigins)を経由して取得する関数
-  async function fetchCSV(sheetId, gid) {
-    document.getElementById('loading').style.display = 'block';
-    document.getElementById('dataTable').style.display = 'none';
-    
-    // GoogleのURL
-    const googleUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`;
-    
-    // プロキシ経由のURL (キャッシュ回避のためタイムスタンプ付与)
-    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(googleUrl)}&t=${Date.now()}`;
-    
-    try {
-      const res = await fetch(proxyUrl);
-      if(!res.ok) throw new Error("通信エラー: " + res.status);
-      const text = await res.text();
+  fetch(GAS_API_URL)
+    .then(response => {
+       if (!response.ok) {
+         throw new Error("通信エラー: " + response.status);
+       }
+       return response.json();
+    })
+    .then(data => {
+      const loading = document.getElementById('loading');
       
-      // 中身チェック
-      if(text.includes("<!DOCTYPE html>") || text.includes("google-site-verification")) {
-         throw new Error("データが取得できませんでした（公開設定などを確認してください）");
+      if (!data || data.length === 0) {
+        loading.textContent = "データがありません";
+        return;
       }
-      return parseCSV(text);
 
-    } catch(e) {
-      const msg = `読み込みエラー: ${e.message}`;
-      document.getElementById('loading').innerHTML = `<span style="color:red; font-weight:bold;">${msg}</span>`;
-      // エラーログ表示
-      const dbg = document.getElementById('debug-log');
-      dbg.style.display = 'block';
-      dbg.textContent = msg + "\n(プロキシ経由での取得に失敗)";
-      return null;
-    }
-  }
+      const headers = data[0];
+      let rows = data.slice(1);
+      
+      // ▼▼▼ 並び替え処理：日付順 ＞ S高優先 ▼▼▼
+      rows.sort((a, b) => {
+        // 1. 日付の比較（新しい日付を上に）
+        if (a[0] > b[0]) return -1;
+        if (a[0] < b[0]) return 1;
 
-  function parseCSV(text) {
-    const lines = text.trim().split('\n');
-    const data = [];
-    for(let i=1; i<lines.length; i++) {
-      // カンマ区切り処理（簡易版）
-      const row = lines[i].split(',').map(cell => 
-        cell.replace(/^"|"$/g, '').replace(/[円¥,]/g, '')
-      );
-      if(row.length > 1) {
-          if(row[1]) row[1] = row[1].replace('.0', '');
-          data.push(row);
-      }
-    }
-    // 日付降順ソート
-    return data.sort((a, b) => a[0] < b[0] ? 1 : -1);
-  }
+        // 2. 同じ日付の場合、S高をS安より上に
+        const statusA = a[1];
+        const statusB = b[1];
+        const isHighA = statusA.includes("S高");
+        const isHighB = statusB.includes("S高");
 
-  // --- S高履歴 ---
-  async function loadSHighData() {
-    const data = await fetchCSV(ID_SHIGH, GIDS.shigh);
-    if(!data) return;
-    
-    cachedSHighData = data;
-    renderSHighTabs(data);
-    filterSHighByMonth('all');
-  }
+        // AがS高でBが違うなら、Aを上(-1)に
+        if (isHighA && !isHighB) return -1;
+        // BがS高でAが違うなら、Bを上(1)に
+        if (!isHighA && isHighB) return 1;
+        
+        return 0; // どちらも同じなら順序変えない
+      });
+      // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
-  function renderSHighTabs(rows) {
-    const container = document.getElementById('sub-shigh');
-    container.innerHTML = "";
-    const months = new Set();
-    rows.forEach(r => {
-      const m = r[0].match(/^(\d{4}\/\d{1,2})/);
-      if(m) months.add(m[1]);
+      allData = rows;
+
+      createMonthTabs(rows);
+      renderTable(headers, rows);
+
+      loading.style.display = 'none';
+      document.getElementById('stockTable').style.display = 'table';
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      document.getElementById('loading').innerHTML = 
+        `読み込みエラーが発生しました。<br><br>` +
+        `Chromeの場合は<br>「広告ブロック(AdBlock)」を<br>OFFにしてみてください。`;
     });
-    createPillBtn(container, 'すべて', true, () => filterSHighByMonth('all'));
-    months.forEach(m => createPillBtn(container, m, false, () => filterSHighByMonth(m)));
+
+  function createMonthTabs(rows) {
+    const tabsContainer = document.getElementById('monthTabs');
+    const months = new Set();
+    
+    rows.forEach(row => {
+      const dateStr = row[0].toString();
+      const match = dateStr.match(/^(\d{4}\/\d{1,2})/); 
+      if (match) months.add(match[1]);
+    });
+
+    const allButton = document.createElement('button');
+    allButton.className = 'tab-button active';
+    allButton.textContent = 'すべて';
+    allButton.onclick = () => {
+      updateActiveTab(allButton);
+      const tableBody = document.getElementById('tableBody');
+      tableBody.innerHTML = '';
+      drawRows(allData);
+    };
+    tabsContainer.appendChild(allButton);
+
+    months.forEach(month => {
+      const btn = document.createElement('button');
+      btn.className = 'tab-button';
+      btn.textContent = month; 
+      btn.onclick = () => {
+        updateActiveTab(btn);
+        const filtered = allData.filter(row => row[0].toString().startsWith(month));
+        const tableBody = document.getElementById('tableBody');
+        tableBody.innerHTML = '';
+        drawRows(filtered);
+      };
+      tabsContainer.appendChild(btn);
+    });
   }
 
-  function filterSHighByMonth(month) {
-    const filtered = (month === 'all') ? cachedSHighData : cachedSHighData.filter(r => r[0].startsWith(month));
-    const thead = document.getElementById('tableHead');
-    // S高ヘッダー
-    thead.innerHTML = `<tr><th style="width:16%">日付</th><th style="width:10%">状態</th><th style="width:16%">コード</th><th>銘柄名</th><th style="width:18%">株価</th><th style="width:18%">前日比</th></tr>`;
-    renderTableBody(filtered, 'shigh');
+  function updateActiveTab(clickedBtn) {
+    const buttons = document.querySelectorAll('.tab-button');
+    buttons.forEach(b => b.classList.remove('active'));
+    clickedBtn.classList.add('active');
   }
 
-  // --- 活況銘柄 ---
-  async function loadActiveData(type, btn) {
-    if(btn) {
-      document.querySelectorAll('#sub-active .pill-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-    }
-    const data = await fetchCSV(ID_ACTIVE, GIDS[`active_${type}`]);
-    if(!data) return;
-
-    const thead = document.getElementById('tableHead');
-    // 活況ヘッダー
-    thead.innerHTML = `<tr><th style="width:16%">日付</th><th style="width:16%">コード</th><th>銘柄名</th><th style="width:18%">株価</th><th style="width:18%">前日比</th></tr>`;
-    renderTableBody(data, 'active');
+  function renderTable(headers, rows) {
+    const tableHead = document.getElementById('tableHead');
+    let headerRow = "<tr>";
+    headers.forEach(text => headerRow += `<th>${text}</th>`);
+    headerRow += "</tr>";
+    tableHead.innerHTML = headerRow;
+    drawRows(rows);
   }
 
-  // --- 描画共通 ---
-  function renderTableBody(rows, mode) {
-    const tbody = document.getElementById('tableBody');
-    tbody.innerHTML = "";
-    document.getElementById('loading').style.display = 'none';
-    document.getElementById('dataTable').style.display = 'table';
-
-    if(rows.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6">データがありません</td></tr>`;
+  function drawRows(rows) {
+    const tableBody = document.getElementById('tableBody');
+    
+    if (rows.length === 0) {
+      tableBody.innerHTML = '<tr><td colspan="6">データがありません</td></tr>';
       return;
     }
 
-    rows.forEach((row, idx) => {
-      const tr = document.createElement('tr');
-      if(idx > 0 && row[0] !== rows[idx-1][0]) tr.classList.add('date-sep');
-      if(idx % 2 === 0) tr.style.backgroundColor = "#fafafa";
-
-      // 列割り当て
-      let dateVal, statusVal, codeVal, nameVal, priceVal, changeVal;
-
-      try {
-        dateVal = row[0].replace(/^\d{4}\//, ''); 
-
-        if(mode === 'shigh') {
-           // S高列推定
-           statusVal = row[1] || "-";
-           codeVal   = row[2] || "----";
-           nameVal   = row[3] || "名称不明";
-           priceVal  = row[row.length - 1] || "0"; 
-           changeVal = row[row.length - 2] || "0";
-        } else {
-           // 活況列推定
-           codeVal   = row[1] || "----";
-           nameVal   = row[2] || "名称不明";
-           priceVal  = row[6] || row[row.length - 1] || "0"; 
-           changeVal = row[5] || row[row.length - 2] || "0"; 
+    rows.forEach((row, index) => { 
+      let tr = document.createElement('tr');
+      
+      if (index > 0) {
+        const currentDate = row[0].toString();
+        const prevDate = rows[index - 1][0].toString();
+        if (currentDate !== prevDate) {
+           tr.classList.add("date-changed");
         }
-
-        // 行生成
-        const tdDate = document.createElement('td');
-        tdDate.innerHTML = `<div>${dateVal}</div><a href="https://x.com/search?q=${codeVal} ${nameVal} 株&src=typed_query&f=live" target="_blank"><img src="x.jpg" class="small-icon" style="margin-top:3px;" onerror="this.style.display='none'"></a>`;
-        tr.appendChild(tdDate);
-
-        if(mode === 'shigh') {
-          const tdStatus = document.createElement('td');
-          tdStatus.textContent = statusVal;
-          if(statusVal.includes("S高")) { tdStatus.style.color = "#d32f2f"; tdStatus.style.fontWeight="bold"; }
-          if(statusVal.includes("S安")) { tdStatus.style.color = "#1976d2"; tdStatus.style.fontWeight="bold"; }
-          tr.appendChild(tdStatus);
-        }
-
-        const tdCode = document.createElement('td');
-        tdCode.innerHTML = `<a href="https://finance.yahoo.co.jp/quote/${codeVal}.T/bbs" target="_blank">${codeVal}<img src="bbs.jpg" class="small-icon" style="vertical-align:bottom; margin-left:2px;" onerror="this.style.display='none'"></a>`;
-        tr.appendChild(tdCode);
-
-        const tdName = document.createElement('td');
-        tdName.style.textAlign = "left";
-        tdName.innerHTML = `<a href="https://kabutan.jp/stock/?code=${codeVal}" target="_blank">${nameVal}<img src="kabu.jpg" class="small-icon" style="vertical-align:bottom; margin-left:2px;" onerror="this.style.display='none'"></a>`;
-        tr.appendChild(tdName);
-
-        const tdPrice = document.createElement('td');
-        tdPrice.style.textAlign = "right";
-        tdPrice.textContent = Number(priceVal).toLocaleString();
-        tr.appendChild(tdPrice);
-
-        const tdChange = document.createElement('td');
-        tdChange.style.textAlign = "right";
-        const numChange = parseFloat(changeVal);
-        if(!isNaN(numChange)) {
-           tdChange.textContent = (numChange > 0 ? "+" : "") + numChange.toLocaleString();
-           if(numChange > 0) tdChange.className = "text-red";
-           if(numChange < 0) tdChange.className = "text-blue";
-        } else {
-           tdChange.textContent = changeVal;
-        }
-        tr.appendChild(tdChange);
-
-      } catch(err) {
-        console.log(err);
       }
-      tbody.appendChild(tr);
-    });
-  }
 
-  function createPillBtn(container, text, isActive, onClick) {
-    const btn = document.createElement('button');
-    btn.className = `pill-btn ${isActive ? 'active' : ''}`;
-    btn.textContent = text;
-    btn.onclick = () => {
-      container.querySelectorAll('.pill-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      onClick();
-    };
-    container.appendChild(btn);
+      const stockCode = row[2];
+
+      row.forEach((cell, cellIndex) => {
+        let td = document.createElement('td');
+        let text = cell.toString();
+
+        if (cellIndex === 0) {
+           text = text.replace(/^\d{4}\//, '').replace('(', ' ').replace(')', ''); 
+        }
+
+        if (text.includes("S高") || text.trim().startsWith("+")) {
+          td.classList.add("text-red");
+        } else if (text.includes("S安") || text.trim().startsWith("-")) {
+          td.classList.add("text-blue");
+        }
+
+        if (cellIndex === 0) {
+            // 日付 + Xアイコン
+            let dateDiv = document.createElement('div');
+            dateDiv.textContent = text;
+            td.appendChild(dateDiv);
+
+            let xLink = document.createElement('a');
+            
+            const query = encodeURIComponent(stockCode + " 株");
+            xLink.href = `https://x.com/search?q=${query}&src=typed_query&f=live`;
+            
+            xLink.target = "_blank";
+            xLink.rel = "noopener noreferrer";
+
+            let xIcon = document.createElement('img');
+            xIcon.src = "x.jpg"; 
+            xIcon.className = "x-icon"; 
+            
+            xLink.appendChild(xIcon);
+            td.appendChild(xLink);
+
+        } else if (cellIndex === 2) { 
+            // コード + Yahooアイコン
+            let link = document.createElement('a');
+            link.href = `https://finance.yahoo.co.jp/quote/${stockCode}.T/bbs`;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            link.textContent = text; 
+            
+            let icon = document.createElement('img');
+            icon.src = "bbs.jpg"; 
+            icon.className = "bbs-icon";
+            link.appendChild(icon);
+            td.appendChild(link);
+            
+        } else if (cellIndex === 3) {
+            // 銘柄名 + 株探アイコン
+            let link = document.createElement('a');
+            link.href = `https://kabutan.jp/stock/?code=${stockCode}`;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            
+            let icon = document.createElement('img');
+            icon.src = "kabu.jpg"; 
+            icon.className = "kabutan-icon";
+            
+            link.appendChild(icon);
+            link.appendChild(document.createTextNode(text));
+            td.appendChild(link);
+            
+        } else {
+            td.textContent = text;
+        }
+
+        if (cellIndex === 4 || cellIndex === 5) { 
+           td.style.textAlign = "right";
+        }
+
+        tr.appendChild(td);
+      });
+      tableBody.appendChild(tr);
+    });
   }
 </script>
 
