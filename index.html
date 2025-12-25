@@ -94,6 +94,7 @@
             width: 100%;
             background-color: white;
             overflow-x: hidden;
+            min-height: 300px;
         }
 
         table {
@@ -111,8 +112,7 @@
             font-weight: bold;
             text-align: center;
             font-size: 12px;
-            position: sticky;
-            top: 0; /* JSで調整 */
+            white-space: nowrap;
         }
 
         td {
@@ -167,7 +167,7 @@
             font-weight: bold;
         }
 
-        /* 株探アイコン (赤丸にグラフ) */
+        /* 株探アイコン (チャートへのリンク) */
         .kabutan-icon {
             color: #cc0000;
             font-size: 14px;
@@ -197,6 +197,15 @@
             text-align: right;
             padding: 2px 10px;
             border-bottom: 1px solid #eee;
+        }
+        
+        /* エラー表示用 */
+        #error-msg {
+            color: red;
+            text-align: center;
+            padding: 20px;
+            font-weight: bold;
+            display: none;
         }
     </style>
 </head>
@@ -232,6 +241,8 @@
     </div>
 
     <div id="loading">データを読み込み中...</div>
+    <div id="error-msg"></div>
+    
     <div class="table-container">
         <table id="stockTable">
             <tbody id="tableBody">
@@ -240,7 +251,7 @@
     </div>
 
     <script>
-        // ★★★ GASのURL ★★★
+        // ★★★ GASのURL (最新) ★★★
         const gasUrl = "https://script.google.com/macros/s/AKfycbyc8KXuA7A_-4_LpTY6RO0Ip9r3ED_g9NtMDgtbzLgpH-hwtouK8db3Zp_8sls-jVVk/exec";
 
         let allData = []; // 取得した全データを保持
@@ -251,10 +262,22 @@
 
         function fetchData() {
             const loading = document.getElementById('loading');
+            const errorMsg = document.getElementById('error-msg');
+            
             fetch(gasUrl)
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error("HTTPエラー: " + response.status);
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     loading.style.display = 'none';
+                    if (!data || data.length === 0) {
+                        errorMsg.innerText = "データが空です";
+                        errorMsg.style.display = 'block';
+                        return;
+                    }
                     // ヘッダー行(0番目)を除去して保持
                     allData = data.slice(1);
                     // 全市場で表示
@@ -262,7 +285,9 @@
                 })
                 .catch(err => {
                     console.error(err);
-                    loading.innerHTML = "読み込み失敗";
+                    loading.style.display = 'none';
+                    errorMsg.innerHTML = "読み込みに失敗しました。<br>更新ボタンを押してみてください。<br>" + err;
+                    errorMsg.style.display = 'block';
                 });
         }
 
@@ -270,18 +295,26 @@
         function filterMarket(type) {
             // タブの見た目変更
             document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+            if(event) event.target.classList.add('active');
 
             let filteredData = [];
+
+            if (!allData || allData.length === 0) return;
 
             if (type === 'all') {
                 filteredData = allData;
             } else if (type === 'std') {
-                // 名前(列3)に「東S」が含まれるか
-                filteredData = allData.filter(row => row[3].includes("東S"));
+                // 名前(列3)に「東S」が含まれるか (全角半角対応)
+                filteredData = allData.filter(row => {
+                    if(!row[3]) return false;
+                    return row[3].includes("東S") || row[3].includes("東Ｓ");
+                });
             } else if (type === 'grw') {
                 // 名前(列3)に「東G」が含まれるか
-                filteredData = allData.filter(row => row[3].includes("東G"));
+                filteredData = allData.filter(row => {
+                    if(!row[3]) return false;
+                    return row[3].includes("東G") || row[3].includes("東Ｇ");
+                });
             }
 
             renderTable(filteredData);
@@ -291,72 +324,14 @@
             const tbody = document.getElementById('tableBody');
             const countBar = document.getElementById('countBar');
             
+            // 安全策：rowsがnullなら空配列に
+            if (!rows) rows = [];
+            
             // 件数更新
             countBar.innerText = rows.length + "件 表示";
 
-            // 並び替え (日付降順 -> S高が先)
-            rows.sort((a, b) => {
-                if (a[0] > b[0]) return -1;
-                if (a[0] < b[0]) return 1;
-                const isHighA = a[1].includes('S高');
-                const isHighB = b[1].includes('S高');
-                if (isHighA && !isHighB) return -1;
-                if (!isHighA && isHighB) return 1;
-                return 0; 
-            });
-
-            let html = "";
-            let previousDate = "";
-
-            rows.forEach((row, index) => {
-                let dateStrRaw = row[0]; // "2025/12/25(木)"
-                
-                // 日付を整形 (2025/12/25(木) -> 12/25<br>木)
-                let dateOnly = dateStrRaw.replace(/\d{4}\//, '').replace(/\(.\)/, '');
-                let weekDay = dateStrRaw.match(/\((.)\)/);
-                let w = weekDay ? weekDay[1] : "";
-                let dateDisplay = `${dateOnly}<br><span style="font-size:9px;color:#888;">${w}</span>`;
-
-                // X検索リンク
-                // コードと銘柄名で検索
-                let xSearchLink = `<a href="https://twitter.com/search?q=${row[2]} ${row[3].split(' ')[0]}" target="_blank" class="x-btn">𝕏</a>`;
-
-                // 文字色判定
-                let statusColor = "text-black";
-                if(row[1].includes("S高")) statusColor = "text-red";
-                if(row[1].includes("S安")) statusColor = "text-blue";
-
-                let changeColor = "text-black";
-                if(String(row[5]).includes('+')) changeColor = "text-red";
-                if(String(row[5]).includes('-')) changeColor = "text-blue";
-
-                // Y!ボタン
-                let yahooLink = `<a href="https://finance.yahoo.co.jp/quote/${row[2]}.T" target="_blank" class="yahoo-btn">Y!</a>`;
-                
-                // 株探アイコン (チャートへのリンク)
-                let kabutanLink = `<a href="https://kabutan.jp/stock/?code=${row[2]}" target="_blank" class="kabutan-icon">📈</a>`;
-
-                html += `<tr>
-                    <td>
-                        ${dateDisplay}<br>
-                        ${xSearchLink}
-                    </td>
-                    <td class="${statusColor}">${row[1]}</td>
-                    <td>
-                        <span style="font-weight:bold; font-size:13px;">${row[2]}</span><br>
-                        ${yahooLink}
-                    </td>
-                    <td>
-                        ${kabutanLink} ${row[3]}
-                    </td>
-                    <td>${row[4]}</td>
-                    <td class="${changeColor}">${row[5]}</td>
-                </tr>`;
-            });
-
-            tbody.innerHTML = html;
-            window.scrollTo(0, 0);
-        }
-    </script>
-</body>
-</html>
+            if (rows.length === 0) {
+                tbody.innerHTML = "<tr><td colspan='6' style='text-align:center; padding:20px;'>該当データなし</td></tr>";
+                return;
+            }
+            
