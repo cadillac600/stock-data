@@ -1,219 +1,268 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>S高・S安 履歴</title>
+function main() {
+  const sheetName = 'data'; 
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(sheetName);
 
-    <link rel="icon" type="image/png" href="icon.png">
-    <link rel="apple-touch-icon" href="icon.png">
-    <meta name="apple-mobile-web-app-title" content="S高履歴">
+  if (!sheet) {
+    Logger.log("【エラー】シート「" + sheetName + "」が見つかりません。");
+    return;
+  }
+  
+  // ▼▼▼ 営業日・重複チェック（ここから） ▼▼▼
+  var checkDate = new Date(); 
+  var checkDay = checkDate.getDay(); // 0:日, 1:月... 6:土
 
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@500;700&family=Noto+Sans+JP:wght@500;700&display=swap" rel="stylesheet">
+  // 1. 土日の場合は終了
+  if (checkDay === 0 || checkDay === 6) {
+    Logger.log("今日は土日のためスキップします");
+    return;
+  }
+
+  // 2. 祝日チェック（クリスマス等の記念日を除外するロジック追加）
+  var calendarId = 'ja.japanese#holiday@group.v.calendar.google.com';
+  var holidays = CalendarApp.getCalendarById(calendarId).getEventsForDay(checkDate);
+  
+  // カレンダーに予定がある場合、それが「市場が休みになる祝日」かチェック
+  if (holidays.length > 0) {
+    var isMarketHoliday = false;
+    for (var i = 0; i < holidays.length; i++) {
+      var title = holidays[i].getTitle();
+      // イベント名に「クリスマス」が含まれていない場合のみ、休みとする
+      if (title.indexOf('クリスマス') === -1) {
+        Logger.log("今日は祝日(" + title + ")のためスキップします");
+        isMarketHoliday = true;
+        break;
+      }
+    }
+    // 本当の祝日だった場合は終了
+    if (isMarketHoliday) {
+      return;
+    }
+  }
+
+  // 3. 年末年始(12/31 ～ 1/3)チェック
+  // 日本株は12/31も休場です
+  var m = checkDate.getMonth() + 1;
+  var d = checkDate.getDate();
+  if ((m === 1 && d <= 3) || (m === 12 && d === 31)) {
+    Logger.log("年末年始休みのためスキップします");
+    return;
+  }
+
+  // 4. 重複チェック（今日の分がすでにA列の最後にあったら終了）
+  var lastRow = sheet.getLastRow();
+  if (lastRow > 0) { 
+    var lastDateVal = sheet.getRange(lastRow, 1).getValue(); 
+    var lastDate = new Date(lastDateVal);
     
-    <style>
-        /* --- 全体設定 --- */
-        body {
-            font-family: 'Roboto', 'Noto Sans JP', sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f5f5f5;
-            padding-top: 100px; /* ヘッダー固定分の余白 */
-            -webkit-text-size-adjust: 100%;
+    // 「最後の行の日付」と「今日」が同じ年月日なら終了
+    if (
+      lastDate.getFullYear() === checkDate.getFullYear() &&
+      lastDate.getMonth() === checkDate.getMonth() &&
+      lastDate.getDate() === checkDate.getDate()
+    ) {
+      Logger.log("本日のデータは既に存在するためスキップします");
+      return;
+    }
+  }
+  // ▲▲▲ 営業日・重複チェック（ここまで） ▲▲▲
+
+  // ▼▼▼ 日付と曜日を作成する処理 ▼▼▼
+  const today = new Date();
+  const weekDays = ['日', '月', '火', '水', '木', '金', '土'];
+  const dayStr = weekDays[today.getDay()]; 
+  
+  const formattedDate = Utilities.formatDate(today, 'Asia/Tokyo', 'yyyy/MM/dd') + '(' + dayStr + ')';
+  // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
+  Logger.log("処理開始: " + formattedDate);
+
+  // 1. ストップ高の取得
+  const sHighUrl = 'https://kabutan.jp/warning/?mode=3_1';
+  const sHighData = scrapeKabutanStopAllocation(sHighUrl, 'S高');
+  if (sHighData.length > 0) {
+    writeToSheet(sheet, sHighData, formattedDate);
+  }
+
+  Utilities.sleep(2000); 
+
+  // 2. ストップ安の取得
+  const sLowUrl = 'https://kabutan.jp/warning/?mode=3_2';
+  const sLowData = scrapeKabutanStopAllocation(sLowUrl, 'S安');
+  if (sLowData.length > 0) {
+    writeToSheet(sheet, sLowData, formattedDate);
+  }
+
+  // 3. デザイン適用
+  applyFinalStyle(sheet);
+
+  Logger.log("処理完了");
+}
+
+// デザイン・色・配置を一括適用する関数（幅固定版）
+function applyFinalStyle(sheet) {
+  const lastRow = sheet.getLastRow();
+  const lastCol = sheet.getLastColumn();
+
+  if (lastRow < 1) return;
+
+  const range = sheet.getRange(1, 1, lastRow, lastCol);
+
+  // --- A. 基本設定 ---
+  range.setFontColor("black"); 
+  range.setFontSize(12);
+  range.setFontFamily("Roboto"); 
+  sheet.setRowHeights(1, lastRow, 25); 
+  
+  range.setBorder(true, true, true, true, true, true, '#d9d9d9', SpreadsheetApp.BorderStyle.SOLID);
+  
+  // ★幅固定の設定★
+  sheet.setColumnWidth(1, 160); // A列: 日付
+  sheet.setColumnWidth(2, 60);  // B列: 状態
+  sheet.setColumnWidth(3, 60);  // C列: コード
+  sheet.setColumnWidth(4, 250); // D列: 銘柄名
+  sheet.setColumnWidth(5, 80);  // E列: 現在値
+  sheet.setColumnWidth(6, 80);  // F列: 前日比
+
+  // --- B. フィルター設定 ---
+  if (sheet.getFilter() !== null) {
+    sheet.getFilter().remove();
+  }
+  range.createFilter();
+
+  // --- C. ヘッダーのデザイン ---
+  const headerRange = sheet.getRange(1, 1, 1, lastCol);
+  headerRange.setBackground("#A0522D"); 
+  headerRange.setFontColor("white");    
+  headerRange.setFontWeight("bold");
+  headerRange.setHorizontalAlignment("center");
+
+  // 縞模様
+  const bandings = sheet.getBandings();
+  for (let i = 0; i < bandings.length; i++) {
+    bandings[i].remove();
+  }
+  range.applyRowBanding(SpreadsheetApp.BandingTheme.PINK);
+
+  // --- D. 条件付き書式 ---
+  sheet.clearConditionalFormatRules();
+  const rules = [];
+
+  rules.push(SpreadsheetApp.newConditionalFormatRule()
+    .whenTextContains("S高").setFontColor("#CC0000").setBold(true).setRanges([range]).build());
+
+  rules.push(SpreadsheetApp.newConditionalFormatRule()
+    .whenTextContains("S安").setFontColor("#0000CC").setBold(true).setRanges([range]).build());
+
+  rules.push(SpreadsheetApp.newConditionalFormatRule()
+    .whenTextStartsWith("+").setFontColor("#CC0000").setRanges([range]).build());
+
+  rules.push(SpreadsheetApp.newConditionalFormatRule()
+    .whenTextStartsWith("-").setFontColor("#0000CC").setRanges([range]).build());
+
+  sheet.setConditionalFormatRules(rules);
+
+  Logger.log("デザイン適用完了");
+}
+
+function scrapeKabutanStopAllocation(url, type) {
+  try {
+    const options = {
+      'method': 'get',
+      'headers': {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      },
+      'muteHttpExceptions': true
+    };
+    
+    const response = UrlFetchApp.fetch(url, options);
+    const html = response.getContentText();
+    const rows = html.split('</tr>');
+    const data = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const rowHtml = rows[i];
+      if (rowHtml.indexOf('code=') === -1) continue;
+
+      const cells = rowHtml.split('</td>');
+      const texts = cells.map(cell => {
+         return cell.replace(/<[^>]+>/g, "")
+                    .replace(/&nbsp;/g, "")
+                    .replace(/[\r\n\t ]+/g, " ")
+                    .trim();
+      }).filter(t => t !== ""); 
+
+      let code = "";
+      let name = "";
+      let price = "";
+      let change = "";
+
+      const codeIndex = texts.findIndex(t => /^[0-9A-Z]{4}$/.test(t));
+      
+      if (codeIndex !== -1) {
+        code = texts[codeIndex];
+        if (texts.length > codeIndex + 1) {
+          name = texts[codeIndex + 1];
         }
+        for (let k = codeIndex + 2; k < texts.length; k++) {
+          let t = texts[k];
+          let cleanPrice = t.replace(/ S$/, "").replace("S", "").trim();
 
-        /* --- 固定ヘッダー --- */
-        .fixed-header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            background-color: #111;
-            z-index: 1000;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+          if (/^[0-9,]+$/.test(cleanPrice) && cleanPrice !== "") {
+            price = cleanPrice;
+            for (let m = k + 1; m < texts.length; m++) {
+               if (/^[+\-][0-9,]+/.test(texts[m])) {
+                 change = texts[m].split(' ')[0]; 
+                 break;
+               }
+            }
+            break;
+          }
         }
+      }
 
-        .app-title {
-            color: #FFD700;
-            text-align: center;
-            margin: 0;
-            padding: 10px 0 5px 0;
-            font-size: 15px;
-            font-weight: bold;
-            letter-spacing: 1px;
-        }
+      if (code && name && price) {
+        data.push([type, code, name, price, change]);
+      }
+    }
+    return data;
 
-        /* --- タブデザイン --- */
-        .tab-container {
-            display: flex;
-            justify-content: space-around;
-            padding: 0;
-            margin: 0;
-        }
+  } catch (e) {
+    Logger.log('エラー: ' + e);
+    return [];
+  }
+}
 
-        .tab-button {
-            flex: 1;
-            padding: 10px 0;
-            background: none;
-            border: none;
-            color: #888;
-            font-size: 12px;
-            font-weight: bold;
-            cursor: pointer;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s;
-            white-space: nowrap;
-        }
+function writeToSheet(sheet, data, date) {
+  const rows = data.map(row => [date, ...row]);
+  if (rows.length > 0) {
+    sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
+  }
+}
 
-        .tab-button.active {
-            color: #FFD700;
-            border-bottom: 3px solid #FFD700;
-            background-color: #222;
-        }
+// ▼▼▼ WEB公開用（Webサイトにデータを渡すための関数） ▼▼▼
+function doGet() {
+  const sheetName = 'data'; 
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+  
+  if (!sheet) {
+    return ContentService.createTextOutput(JSON.stringify({error: "Sheet not found"}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
 
-        /* --- コンテンツエリア --- */
-        .content-area {
-            display: none;
-            width: 100%;
-        }
-        .content-area.active {
-            display: block;
-        }
+  const data = sheet.getDataRange().getValues();
+  
+  const formattedData = data.map((row, index) => {
+    // ヘッダー行はそのまま
+    if (index === 0) return row;
+    
+    // 日付オブジェクトを文字列(yyyy/MM/dd)に変換してJSONで化けないようにする
+    if (row[0] instanceof Date) {
+      row[0] = Utilities.formatDate(row[0], 'Asia/Tokyo', 'yyyy/MM/dd');
+    }
+    return row;
+  });
 
-        /* --- テーブル共通デザイン --- */
-        .table-container {
-            width: 100%;
-            background-color: white;
-            overflow-x: hidden;
-        }
-
-        table {
-            width: 100%;
-            table-layout: fixed; /* 列幅固定ではみ出し防止 */
-            border-collapse: collapse;
-            font-size: 10px; /* スマホ用サイズ */
-        }
-
-        th {
-            background-color: #e91e63;
-            color: white;
-            padding: 8px 1px;
-            font-weight: bold;
-            text-align: center;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-            white-space: nowrap;
-        }
-
-        td {
-            padding: 8px 1px; /* 余白を最小限に */
-            border-bottom: 1px solid #ddd;
-            vertical-align: middle;
-            line-height: 1.3;
-        }
-
-        /* --- 日付区切りの太線クラス --- */
-        tr.date-separator {
-            border-top: 3px solid #444; /* 濃いグレーの太線 */
-        }
-
-        /* --- 列幅調整 (iPhone15対応) --- */
-        
-        /* 1. S高履歴テーブル */
-        /* [日付, 状態, コード, 銘柄名, 現在値, 前日比] */
-        #table-sdaka th:nth-child(1), #table-sdaka td:nth-child(1) { width: 14%; text-align: center; letter-spacing: -0.5px;} /* 日付 */
-        #table-sdaka th:nth-child(2), #table-sdaka td:nth-child(2) { width: 9%;  text-align: center; font-weight: bold; } /* 状態 */
-        #table-sdaka th:nth-child(3), #table-sdaka td:nth-child(3) { width: 11%; text-align: center; } /* コード */
-        #table-sdaka th:nth-child(4), #table-sdaka td:nth-child(4) { 
-            width: 32%; 
-            text-align: left; 
-            white-space: normal; /* 改行許可 */
-            word-break: break-all; 
-            font-weight: bold;
-            padding-left: 2px;
-        } /* 銘柄名 */
-        #table-sdaka th:nth-child(5), #table-sdaka td:nth-child(5) { width: 17%; text-align: right; letter-spacing: -0.5px;} /* 現在値 */
-        #table-sdaka th:nth-child(6), #table-sdaka td:nth-child(6) { width: 17%; text-align: right; letter-spacing: -0.5px;} /* 前日比 */
-
-        /* 2. 活況ランキングテーブル */
-        /* [順, CD, 銘柄, 回数, %, 幅, 株価] */
-        #table-ranking th:nth-child(1), #table-ranking td:nth-child(1) { width: 0%; display:none;} /* index列は非表示 */
-        #table-ranking th:nth-child(2), #table-ranking td:nth-child(2) { width: 12%; text-align: center; } /* CD */
-        #table-ranking th:nth-child(3), #table-ranking td:nth-child(3) { 
-            width: 28%; 
-            text-align: left; 
-            white-space: normal;
-            word-break: break-all;
-            font-weight: bold;
-        } /* 銘柄 */
-        #table-ranking th:nth-child(4), #table-ranking td:nth-child(4) { width: 15%; text-align: right; letter-spacing: -1px;} /* 回数 */
-        #table-ranking th:nth-child(5), #table-ranking td:nth-child(5) { width: 13%; text-align: right; letter-spacing: -1px;} /* % */
-        #table-ranking th:nth-child(6), #table-ranking td:nth-child(6) { width: 14%; text-align: right; letter-spacing: -1px;} /* 幅 */
-        #table-ranking th:nth-child(7), #table-ranking td:nth-child(7) { width: 18%; text-align: right; font-weight: 500;} /* 株価 */
-
-
-        /* シマウマ模様 */
-        tr:nth-child(even) { background-color: #fce4ec; }
-        tr:nth-child(odd) { background-color: #ffffff; }
-
-        /* 文字色 */
-        .text-red    { color: #cc0000; font-weight: bold; }
-        .text-blue   { color: #0000cc; font-weight: bold; }
-        .text-black  { color: #000000; }
-
-        /* 更新日時 */
-        .info-bar {
-            text-align: right;
-            font-size: 10px;
-            color: #666;
-            padding: 4px 10px;
-        }
-
-        /* ローディング */
-        .loading {
-            text-align: center;
-            padding: 50px;
-            color: #666;
-            font-size: 12px;
-        }
-    </style>
-</head>
-<body>
-
-    <div class="fixed-header">
-        <h1 class="app-title" id="pageTitle">S高・S安 履歴</h1>
-        <div class="tab-container">
-            <button class="tab-button active" onclick="switchTab('sdaka')">S高履歴</button>
-            <button class="tab-button" onclick="switchTab('all')">全市場</button>
-            <button class="tab-button" onclick="switchTab('std')">スタンダ</button>
-            <button class="tab-button" onclick="switchTab('grw')">グロース</button>
-        </div>
-    </div>
-
-    <div id="area-sdaka" class="content-area active">
-        <div id="loading-sdaka" class="loading">S高データを読み込み中...</div>
-        <div class="table-container">
-            <table id="table-sdaka">
-                </table>
-        </div>
-    </div>
-
-    <div id="area-ranking" class="content-area">
-        <div id="loading-ranking" class="loading">ランキングを読み込み中...</div>
-        <div class="info-bar" id="update-time-ranking"></div>
-        <div class="table-container">
-            <table id="table-ranking">
-                <thead><tr id="header-ranking"></tr></thead>
-                <tbody id="body-ranking"></tbody>
-            </table>
-        </div>
-    </div>
-
-    <script>
-        // ===============================================
-        // ★★★ 設定エリア ★★★
-        // ===============================================
-        
-        // 1. S高履歴のGASウェブアプリURL
-        const sHighGasUrl = "
+  return ContentService.createTextOutput(JSON.stringify(formattedData))
+    .setMimeType(ContentService.MimeType.JSON);
+}
