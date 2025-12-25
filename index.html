@@ -1,268 +1,257 @@
-function main() {
-  const sheetName = 'data'; 
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(sheetName);
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>S高・S安 履歴</title>
 
-  if (!sheet) {
-    Logger.log("【エラー】シート「" + sheetName + "」が見つかりません。");
-    return;
-  }
-  
-  // ▼▼▼ 営業日・重複チェック（ここから） ▼▼▼
-  var checkDate = new Date(); 
-  var checkDay = checkDate.getDay(); // 0:日, 1:月... 6:土
+    <link rel="icon" type="image/png" href="icon.png">
+    <link rel="apple-touch-icon" href="icon.png">
+    <meta name="apple-mobile-web-app-title" content="S高履歴">
 
-  // 1. 土日の場合は終了
-  if (checkDay === 0 || checkDay === 6) {
-    Logger.log("今日は土日のためスキップします");
-    return;
-  }
-
-  // 2. 祝日チェック（クリスマス等の記念日を除外するロジック追加）
-  var calendarId = 'ja.japanese#holiday@group.v.calendar.google.com';
-  var holidays = CalendarApp.getCalendarById(calendarId).getEventsForDay(checkDate);
-  
-  // カレンダーに予定がある場合、それが「市場が休みになる祝日」かチェック
-  if (holidays.length > 0) {
-    var isMarketHoliday = false;
-    for (var i = 0; i < holidays.length; i++) {
-      var title = holidays[i].getTitle();
-      // イベント名に「クリスマス」が含まれていない場合のみ、休みとする
-      if (title.indexOf('クリスマス') === -1) {
-        Logger.log("今日は祝日(" + title + ")のためスキップします");
-        isMarketHoliday = true;
-        break;
-      }
-    }
-    // 本当の祝日だった場合は終了
-    if (isMarketHoliday) {
-      return;
-    }
-  }
-
-  // 3. 年末年始(12/31 ～ 1/3)チェック
-  // 日本株は12/31も休場です
-  var m = checkDate.getMonth() + 1;
-  var d = checkDate.getDate();
-  if ((m === 1 && d <= 3) || (m === 12 && d === 31)) {
-    Logger.log("年末年始休みのためスキップします");
-    return;
-  }
-
-  // 4. 重複チェック（今日の分がすでにA列の最後にあったら終了）
-  var lastRow = sheet.getLastRow();
-  if (lastRow > 0) { 
-    var lastDateVal = sheet.getRange(lastRow, 1).getValue(); 
-    var lastDate = new Date(lastDateVal);
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@500;700&family=Noto+Sans+JP:wght@500;700&display=swap" rel="stylesheet">
     
-    // 「最後の行の日付」と「今日」が同じ年月日なら終了
-    if (
-      lastDate.getFullYear() === checkDate.getFullYear() &&
-      lastDate.getMonth() === checkDate.getMonth() &&
-      lastDate.getDate() === checkDate.getDate()
-    ) {
-      Logger.log("本日のデータは既に存在するためスキップします");
-      return;
-    }
-  }
-  // ▲▲▲ 営業日・重複チェック（ここまで） ▲▲▲
-
-  // ▼▼▼ 日付と曜日を作成する処理 ▼▼▼
-  const today = new Date();
-  const weekDays = ['日', '月', '火', '水', '木', '金', '土'];
-  const dayStr = weekDays[today.getDay()]; 
-  
-  const formattedDate = Utilities.formatDate(today, 'Asia/Tokyo', 'yyyy/MM/dd') + '(' + dayStr + ')';
-  // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
-
-  Logger.log("処理開始: " + formattedDate);
-
-  // 1. ストップ高の取得
-  const sHighUrl = 'https://kabutan.jp/warning/?mode=3_1';
-  const sHighData = scrapeKabutanStopAllocation(sHighUrl, 'S高');
-  if (sHighData.length > 0) {
-    writeToSheet(sheet, sHighData, formattedDate);
-  }
-
-  Utilities.sleep(2000); 
-
-  // 2. ストップ安の取得
-  const sLowUrl = 'https://kabutan.jp/warning/?mode=3_2';
-  const sLowData = scrapeKabutanStopAllocation(sLowUrl, 'S安');
-  if (sLowData.length > 0) {
-    writeToSheet(sheet, sLowData, formattedDate);
-  }
-
-  // 3. デザイン適用
-  applyFinalStyle(sheet);
-
-  Logger.log("処理完了");
-}
-
-// デザイン・色・配置を一括適用する関数（幅固定版）
-function applyFinalStyle(sheet) {
-  const lastRow = sheet.getLastRow();
-  const lastCol = sheet.getLastColumn();
-
-  if (lastRow < 1) return;
-
-  const range = sheet.getRange(1, 1, lastRow, lastCol);
-
-  // --- A. 基本設定 ---
-  range.setFontColor("black"); 
-  range.setFontSize(12);
-  range.setFontFamily("Roboto"); 
-  sheet.setRowHeights(1, lastRow, 25); 
-  
-  range.setBorder(true, true, true, true, true, true, '#d9d9d9', SpreadsheetApp.BorderStyle.SOLID);
-  
-  // ★幅固定の設定★
-  sheet.setColumnWidth(1, 160); // A列: 日付
-  sheet.setColumnWidth(2, 60);  // B列: 状態
-  sheet.setColumnWidth(3, 60);  // C列: コード
-  sheet.setColumnWidth(4, 250); // D列: 銘柄名
-  sheet.setColumnWidth(5, 80);  // E列: 現在値
-  sheet.setColumnWidth(6, 80);  // F列: 前日比
-
-  // --- B. フィルター設定 ---
-  if (sheet.getFilter() !== null) {
-    sheet.getFilter().remove();
-  }
-  range.createFilter();
-
-  // --- C. ヘッダーのデザイン ---
-  const headerRange = sheet.getRange(1, 1, 1, lastCol);
-  headerRange.setBackground("#A0522D"); 
-  headerRange.setFontColor("white");    
-  headerRange.setFontWeight("bold");
-  headerRange.setHorizontalAlignment("center");
-
-  // 縞模様
-  const bandings = sheet.getBandings();
-  for (let i = 0; i < bandings.length; i++) {
-    bandings[i].remove();
-  }
-  range.applyRowBanding(SpreadsheetApp.BandingTheme.PINK);
-
-  // --- D. 条件付き書式 ---
-  sheet.clearConditionalFormatRules();
-  const rules = [];
-
-  rules.push(SpreadsheetApp.newConditionalFormatRule()
-    .whenTextContains("S高").setFontColor("#CC0000").setBold(true).setRanges([range]).build());
-
-  rules.push(SpreadsheetApp.newConditionalFormatRule()
-    .whenTextContains("S安").setFontColor("#0000CC").setBold(true).setRanges([range]).build());
-
-  rules.push(SpreadsheetApp.newConditionalFormatRule()
-    .whenTextStartsWith("+").setFontColor("#CC0000").setRanges([range]).build());
-
-  rules.push(SpreadsheetApp.newConditionalFormatRule()
-    .whenTextStartsWith("-").setFontColor("#0000CC").setRanges([range]).build());
-
-  sheet.setConditionalFormatRules(rules);
-
-  Logger.log("デザイン適用完了");
-}
-
-function scrapeKabutanStopAllocation(url, type) {
-  try {
-    const options = {
-      'method': 'get',
-      'headers': {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-      },
-      'muteHttpExceptions': true
-    };
-    
-    const response = UrlFetchApp.fetch(url, options);
-    const html = response.getContentText();
-    const rows = html.split('</tr>');
-    const data = [];
-
-    for (let i = 0; i < rows.length; i++) {
-      const rowHtml = rows[i];
-      if (rowHtml.indexOf('code=') === -1) continue;
-
-      const cells = rowHtml.split('</td>');
-      const texts = cells.map(cell => {
-         return cell.replace(/<[^>]+>/g, "")
-                    .replace(/&nbsp;/g, "")
-                    .replace(/[\r\n\t ]+/g, " ")
-                    .trim();
-      }).filter(t => t !== ""); 
-
-      let code = "";
-      let name = "";
-      let price = "";
-      let change = "";
-
-      const codeIndex = texts.findIndex(t => /^[0-9A-Z]{4}$/.test(t));
-      
-      if (codeIndex !== -1) {
-        code = texts[codeIndex];
-        if (texts.length > codeIndex + 1) {
-          name = texts[codeIndex + 1];
+    <style>
+        /* --- 全体設定 --- */
+        body {
+            font-family: 'Roboto', 'Noto Sans JP', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            padding-top: 60px; /* ヘッダーの高さ */
+            -webkit-text-size-adjust: 100%;
         }
-        for (let k = codeIndex + 2; k < texts.length; k++) {
-          let t = texts[k];
-          let cleanPrice = t.replace(/ S$/, "").replace("S", "").trim();
 
-          if (/^[0-9,]+$/.test(cleanPrice) && cleanPrice !== "") {
-            price = cleanPrice;
-            for (let m = k + 1; m < texts.length; m++) {
-               if (/^[+\-][0-9,]+/.test(texts[m])) {
-                 change = texts[m].split(' ')[0]; 
-                 break;
-               }
-            }
-            break;
-          }
+        /* --- 固定ヘッダー --- */
+        .fixed-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 50px;
+            background-color: #f5f5f5; /* 背景は白系でシンプルに */
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
-      }
 
-      if (code && name && price) {
-        data.push([type, code, name, price, change]);
-      }
-    }
-    return data;
+        .app-title {
+            color: #333;
+            font-size: 18px;
+            font-weight: bold;
+            margin: 0;
+            display: flex;
+            align-items: center;
+        }
+        
+        /* タイトルのアイコン（簡易グラフ） */
+        .title-icon {
+            margin-right: 8px;
+            font-size: 20px;
+        }
 
-  } catch (e) {
-    Logger.log('エラー: ' + e);
-    return [];
-  }
-}
+        /* --- テーブルデザイン --- */
+        .table-container {
+            width: 100%;
+            background-color: white;
+            overflow-x: hidden;
+        }
 
-function writeToSheet(sheet, data, date) {
-  const rows = data.map(row => [date, ...row]);
-  if (rows.length > 0) {
-    sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
-  }
-}
+        table {
+            width: 100%;
+            table-layout: fixed; /* 列幅固定 */
+            border-collapse: collapse;
+            font-size: 11px; /* スマホで見やすいサイズ */
+        }
 
-// ▼▼▼ WEB公開用（Webサイトにデータを渡すための関数） ▼▼▼
-function doGet() {
-  const sheetName = 'data'; 
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
-  
-  if (!sheet) {
-    return ContentService.createTextOutput(JSON.stringify({error: "Sheet not found"}))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
+        th {
+            background-color: #e91e63; /* 濃いピンク */
+            color: white;
+            padding: 10px 2px;
+            font-weight: bold;
+            text-align: center;
+            position: sticky;
+            top: 50px; /* ヘッダーの下に固定 */
+            z-index: 10;
+            white-space: nowrap;
+        }
 
-  const data = sheet.getDataRange().getValues();
-  
-  const formattedData = data.map((row, index) => {
-    // ヘッダー行はそのまま
-    if (index === 0) return row;
-    
-    // 日付オブジェクトを文字列(yyyy/MM/dd)に変換してJSONで化けないようにする
-    if (row[0] instanceof Date) {
-      row[0] = Utilities.formatDate(row[0], 'Asia/Tokyo', 'yyyy/MM/dd');
-    }
-    return row;
-  });
+        td {
+            padding: 12px 4px; /* タップしやすいように少し広めに */
+            border-bottom: 1px solid #eee;
+            vertical-align: middle;
+            line-height: 1.4;
+        }
 
-  return ContentService.createTextOutput(JSON.stringify(formattedData))
-    .setMimeType(ContentService.MimeType.JSON);
-}
+        /* --- 日付区切りの太線 --- */
+        tr.date-separator {
+            border-top: 4px solid #ddd; /* グレーの太線 */
+        }
+
+        /* --- 列幅調整 (iPhone15最適化) --- */
+        /* 列: [日付, 状態, コード, 銘柄, 現在値, 前日比] */
+        th:nth-child(1), td:nth-child(1) { width: 14%; text-align: center; font-size: 10px; color: #666; } /* 日付 */
+        th:nth-child(2), td:nth-child(2) { width: 10%; text-align: center; font-weight: bold; } /* 状態 */
+        th:nth-child(3), td:nth-child(3) { width: 18%; text-align: center; } /* コード(リンク含む) */
+        th:nth-child(4), td:nth-child(4) { width: 28%; text-align: left; font-weight: bold; white-space: normal; word-break: break-all;} /* 銘柄 */
+        th:nth-child(5), td:nth-child(5) { width: 15%; text-align: right; } /* 現在値 */
+        th:nth-child(6), td:nth-child(6) { width: 15%; text-align: right; } /* 前日比 */
+
+        /* --- リンクボタン装飾 --- */
+        .link-icon {
+            text-decoration: none;
+            display: inline-block;
+            margin-left: 2px;
+            vertical-align: middle;
+        }
+        /* Yahooアイコン風 */
+        .yahoo-btn {
+            background-color: #ff0033; /* Y!の赤 */
+            color: white;
+            font-size: 9px;
+            padding: 1px 3px;
+            border-radius: 2px;
+            font-weight: bold;
+            font-family: sans-serif;
+        }
+        /* チャートアイコン風 */
+        .chart-icon {
+            color: #e91e63;
+            font-size: 14px;
+        }
+
+        /* 文字色 */
+        .text-red { color: #cc0000; }
+        .text-blue { color: #0000cc; }
+        .text-black { color: #000; }
+
+        /* ローディング */
+        #loading {
+            text-align: center;
+            padding: 50px;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="fixed-header">
+        <h1 class="app-title">
+            <span class="title-icon">📈</span>ストップ高・ストップ安 履歴
+        </h1>
+    </div>
+
+    <div id="loading">データを読み込み中...</div>
+    <div class="table-container">
+        <table id="stockTable">
+            </table>
+    </div>
+
+    <script>
+        // ★★★ GASのURL (最新版) ★★★
+        const gasUrl = "https://script.google.com/macros/s/AKfycbxG748E3HJpiUACWzkbOlekmXFsEhxB-c6zJI_XI50lbzigtm2S8LrkpRS3pUHcm7Kn/exec";
+
+        window.onload = function() {
+            fetchData();
+        };
+
+        function fetchData() {
+            const loading = document.getElementById('loading');
+            fetch(gasUrl)
+                .then(response => response.json())
+                .then(data => {
+                    loading.style.display = 'none';
+                    renderTable(data);
+                })
+                .catch(err => {
+                    console.error(err);
+                    loading.innerHTML = "読み込みに失敗しました。<br>再読み込みしてください。";
+                });
+        }
+
+        function renderTable(data) {
+            const table = document.getElementById('stockTable');
+            // ヘッダー作成
+            let html = `<thead><tr>
+                <th>日付</th>
+                <th>状態</th>
+                <th>コード</th>
+                <th>銘柄名</th>
+                <th>現在値</th>
+                <th>前日比</th>
+            </tr></thead><tbody>`;
+
+            // 1. データ取得（ヘッダー行を除く）
+            let rows = data.slice(1);
+
+            // 2. 並び替え (日付降順 -> S高が先 -> S安が後)
+            rows.sort((a, b) => {
+                // 日付比較 (新しい日付が上)
+                if (a[0] > b[0]) return -1;
+                if (a[0] < b[0]) return 1;
+
+                // 同じ日付なら状態比較 ("S高" が "S安" より先に来るように)
+                // 文字列比較だと "S安" > "S高" になる可能性があるため明示的に
+                const isHighA = a[1].includes('S高');
+                const isHighB = b[1].includes('S高');
+                if (isHighA && !isHighB) return -1; // AがS高なら上
+                if (!isHighA && isHighB) return 1;  // BがS高なら上
+                return 0; 
+            });
+
+            // 3. 行生成
+            let previousDate = "";
+
+            rows.forEach((row, index) => {
+                let dateStrRaw = row[0]; // "2025/12/25(木)"
+                
+                // 日付区切り線の判定
+                let rowClass = "";
+                if (index > 0 && dateStrRaw !== previousDate) {
+                    rowClass = "date-separator";
+                }
+                previousDate = dateStrRaw;
+
+                // 日付表示の短縮 (例: 12/25木)
+                let dateDisplay = dateStrRaw.replace(/\d{4}\//, '').replace(/[()]/g, '');
+
+                // 文字色判定
+                let statusColor = "text-black";
+                if(row[1].includes("S高")) statusColor = "text-red";
+                if(row[1].includes("S安")) statusColor = "text-blue";
+
+                let changeColor = "text-black";
+                if(String(row[5]).includes('+')) changeColor = "text-red";
+                if(String(row[5]).includes('-')) changeColor = "text-blue";
+
+                // リンク生成
+                // Yahooファイナンスアイコン (Y!)
+                let yahooLink = `<a href="https://finance.yahoo.co.jp/quote/${row[2]}.T" target="_blank" class="link-icon yahoo-btn">Y!</a>`;
+                
+                // 株探アイコン (銘柄名の横につけるグラフっぽいアイコン)
+                let kabutanLink = `<a href="https://kabutan.jp/stock/?code=${row[2]}" target="_blank" class="link-icon chart-icon">📈</a>`;
+
+                html += `<tr class="${rowClass}">
+                    <td>${dateDisplay}</td>
+                    <td class="${statusColor}">${row[1]}</td>
+                    <td>
+                        <span style="font-weight:bold; font-size:12px;">${row[2]}</span><br>
+                        ${yahooLink}
+                    </td>
+                    <td>
+                        ${kabutanLink} ${row[3]}
+                    </td>
+                    <td>${row[4]}</td>
+                    <td class="${changeColor}">${row[5]}</td>
+                </tr>`;
+            });
+
+            html += `</tbody>`;
+            table.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
