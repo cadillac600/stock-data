@@ -1,467 +1,331 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>S高・S安 履歴</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>株価情報まとめ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* --- 全体設定 --- */
+        body {
+            font-family: 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            padding-top: 110px; /* ヘッダー固定分の余白 */
+        }
 
-<link rel="apple-touch-icon" href="icon.png">
-<link rel="icon" href="icon.png">
-<meta name="apple-mobile-web-app-title" content="S高履歴">
+        /* --- 固定ヘッダー（黒×黄色） --- */
+        .fixed-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: #111;
+            z-index: 1000;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
 
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+        .app-title {
+            color: #FFD700; /* 黄色 */
+            text-align: center;
+            margin: 0;
+            padding: 12px 0 5px 0;
+            font-size: 16px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
 
-  body {
-    margin: 0;
-    padding: 10px;
-    font-family: 'Roboto', Helvetica, Arial, sans-serif;
-    background-color: #f1f3f4;
-  }
+        /* --- タブデザイン --- */
+        .tab-container {
+            display: flex;
+            justify-content: space-around;
+            padding: 0;
+            margin: 0;
+        }
 
-  /* ▼▼▼ タイトルエリアのデザイン ▼▼▼ */
-  .title-area {
-    display: flex;
-    align-items: center; /* 上下中央揃え */
-    margin: 10px 0 15px 5px;
-  }
+        .tab-button {
+            flex: 1;
+            padding: 12px 0;
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
 
-  .title-area h3 {
-    margin: 0;
-    color: #202124;
-    font-size: 18px;
-    line-height: 1;
-  }
+        .tab-button.active {
+            color: #FFD700;
+            border-bottom: 3px solid #FFD700;
+            background-color: #222;
+        }
 
-  .title-img-left {
-    width: 24px;
-    height: 24px;
-    margin-right: 8px;
-    object-fit: contain;
-  }
+        /* --- コンテンツエリア --- */
+        .content-area {
+            display: none; /* 初期状態は非表示 */
+            width: 100%;
+        }
+        .content-area.active {
+            display: block; /* アクティブなタブだけ表示 */
+        }
 
-  .title-img-right {
-    width: 24px;
-    height: 24px;
-    margin-left: 8px;
-    object-fit: contain;
-  }
-  /* ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ */
+        /* --- テーブルデザイン --- */
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            background-color: white;
+        }
 
-  /* リンクのデザイン */
-  a {
-    color: inherit;
-    text-decoration: underline;
-    text-decoration-color: rgba(0,0,0,0.3);
-    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
-  }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            white-space: nowrap;
+        }
 
-  /* 凡例エリア */
-  .legend-area {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 12px;
-    padding: 10px 12px;
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 1px 2px rgba(60,64,67,0.1);
-    font-size: 11px;
-    color: #444;
-    border: 1px solid #dadce0;
-  }
+        th {
+            background-color: #e91e63; /* 共通の濃いピンクヘッダー */
+            color: white;
+            padding: 10px 8px;
+            position: sticky;
+            top: 0;
+        }
 
-  .legend-item {
-    display: flex;
-    align-items: center;
-    width: 48%; 
-    box-sizing: border-box;
-  }
-  
-  .legend-item.full-width {
-    width: 100%;
-    margin-top: 4px;
-    border-top: 1px dashed #eee;
-    padding-top: 6px;
-  }
+        td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #ddd;
+            vertical-align: middle;
+        }
 
-  .legend-icon-img {
-    width: 16px;
-    height: 16px;
-    object-fit: cover;
-    border-radius: 3px;
-    margin-right: 6px;
-    vertical-align: middle;
-  }
+        /* シマウマ模様 */
+        tr:nth-child(even) { background-color: #fce4ec; }
+        tr:nth-child(odd) { background-color: #ffffff; }
 
-  .legend-note {
-    color: #888;
-    margin-left: 5px;
-    font-size: 10px;
-  }
+        /* 文字色・配置 */
+        .text-center { text-align: center; }
+        .text-left   { text-align: left; }
+        .text-right  { text-align: right; }
+        .text-red    { color: #cc0000; font-weight: bold; }
+        .text-blue   { color: #0000cc; font-weight: bold; }
+        .text-black  { color: #000000; }
 
-  /* アイコンの共通デザイン */
-  .bbs-icon, .kabutan-icon, .x-icon {
-    width: 18px;          
-    height: 18px;         
-    object-fit: cover;    
-    border-radius: 3px;   
-    vertical-align: middle;
-  }
+        /* 更新日時など */
+        .info-bar {
+            text-align: right;
+            font-size: 11px;
+            color: #666;
+            padding: 5px 10px;
+        }
 
-  /* 個別の位置調整 */
-  .x-icon { display: block; margin: 4px auto 0; }
-  .bbs-icon { margin-left: 5px; }
-  .kabutan-icon { margin-right: 5px; }
-
-
-  /* タブボタンのデザイン */
-  .tabs {
-    display: flex;
-    overflow-x: auto;
-    white-space: nowrap;
-    margin-bottom: 10px;
-    padding-bottom: 5px;
-    gap: 8px;
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-  .tabs::-webkit-scrollbar { display: none; }
-
-  .tab-button {
-    background-color: #fff;
-    border: 1px solid #dadce0;
-    border-radius: 20px;
-    padding: 6px 16px;
-    font-size: 13px;
-    cursor: pointer;
-    color: #5f6368;
-    font-weight: 500;
-    transition: all 0.2s;
-  }
-
-  .tab-button.active {
-    background-color: #e91e63;
-    color: white;
-    border-color: #e91e63;
-  }
-
-  /* 表のデザイン */
-  .stock-table-container {
-    background: white;
-    width: 100%;
-    overflow-x: hidden;
-    border: 1px solid #dadce0;
-    box-shadow: 0 1px 2px rgba(60,64,67,0.3);
-    border-radius: 4px;
-  }
-  
-  table.stock-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 12px;
-    table-layout: fixed;
-  }
-
-  table.stock-table th {
-    background-color: #e91e63;
-    color: white;
-    padding: 8px 2px;
-    font-weight: bold;
-    text-align: center;
-    border: 1px solid #c2185b;
-    white-space: nowrap;
-  }
-
-  table.stock-table td {
-    padding: 8px 2px;
-    border: 1px solid #e0e0e0;
-    color: #333;
-    vertical-align: middle;
-    text-align: center;
-    word-wrap: break-word;
-  }
-
-  table.stock-table td:nth-child(4) {
-    text-align: left;
-    white-space: normal;
-    padding-left: 5px;
-  }
-
-  table.stock-table tr:nth-child(even) {
-    background-color: #fff0f5;
-  }
-
-  tr.date-changed td {
-    border-top: 2px solid #888 !important; 
-  }
-
-  .text-red { color: #d32f2f !important; font-weight: bold; }
-  .text-blue { color: #1976d2 !important; font-weight: bold; }
-
-  @media screen and (max-width: 600px) {
-    table.stock-table { font-size: 11px; }
-    table.stock-table td:nth-child(1) {
-      white-space: nowrap;
-      font-size: 10px;
-      letter-spacing: -0.5px;
-    }
-    table.stock-table th:nth-child(1) { width: 15%; }
-    table.stock-table th:nth-child(2) { width: 9%; }
-    table.stock-table th:nth-child(3) { width: 14%; }
-    table.stock-table th:nth-child(4) { width: auto; }
-    table.stock-table th:nth-child(5) { width: 15%; }
-    table.stock-table th:nth-child(6) { width: 13%; }
-  }
-
-  #loading {
-    text-align: center;
-    padding: 30px;
-    color: #5f6368;
-    font-size: 14px;
-  }
-</style>
+        /* ローディング */
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #666;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
 
-<div class="title-area">
-  <img src="sd.jpg" class="title-img-left">
-  <h3>ストップ高・ストップ安 履歴</h3>
-  <img src="ss.jpg" class="title-img-right">
-</div>
-<div class="tabs" id="monthTabs"></div>
+    <div class="fixed-header">
+        <h1 class="app-title" id="pageTitle">S高・S安 履歴</h1>
+        <div class="tab-container">
+            <button class="tab-button active" onclick="switchTab('sdaka')">S高履歴</button>
+            <button class="tab-button" onclick="switchTab('all')">全市場</button>
+            <button class="tab-button" onclick="switchTab('std')">スタンダ</button>
+            <button class="tab-button" onclick="switchTab('grw')">グロース</button>
+        </div>
+    </div>
 
-<div class="legend-area">
-  <div class="legend-item">
-    <img src="bbs.jpg" class="legend-icon-img"> 掲示板へ
-  </div>
-  <div class="legend-item">
-    <img src="kabu.jpg" class="legend-icon-img"> 株探ページへ
-  </div>
-  <div class="legend-item full-width">
-    <img src="x.jpg" class="legend-icon-img"> X検索 <span class="legend-note">※最新タブ「コード 株」で検索されます。スマホは切替必要</span>
-  </div>
-</div>
+    <div id="area-sdaka" class="content-area active">
+        <div id="loading-sdaka" class="loading">S高データを読み込み中...</div>
+        <div class="table-container">
+            <table id="table-sdaka">
+                </table>
+        </div>
+    </div>
 
-<div class="stock-table-container">
-  <div id="loading">データを読み込んでいます...</div>
-  <table class="stock-table" id="stockTable" style="display:none;">
-    <thead id="tableHead"></thead>
-    <tbody id="tableBody"></tbody>
-  </table>
-</div>
+    <div id="area-ranking" class="content-area">
+        <div id="loading-ranking" class="loading">ランキングを読み込み中...</div>
+        <div class="info-bar" id="update-time-ranking"></div>
+        <div class="table-container">
+            <table id="table-ranking">
+                <thead><tr id="header-ranking"></tr></thead>
+                <tbody id="body-ranking"></tbody>
+            </table>
+        </div>
+    </div>
 
-<script>
-  // ▼▼▼ あなたのGAS URL ▼▼▼
-  const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzvdeV4ek9JwVp9uM8es2DwJApOnkPu6VOw0TztKubOxjWFFxzjT__8iQPKzsEBzBvd/exec"; 
-  // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
-
-  let allData = [];
-
-  fetch(GAS_API_URL)
-    .then(response => {
-       if (!response.ok) {
-         throw new Error("通信エラー: " + response.status);
-       }
-       return response.json();
-    })
-    .then(data => {
-      const loading = document.getElementById('loading');
-      
-      if (!data || data.length === 0) {
-        loading.textContent = "データがありません";
-        return;
-      }
-
-      const headers = data[0];
-      let rows = data.slice(1);
-      
-      // ▼▼▼ 並び替え処理：日付順 ＞ S高優先 ▼▼▼
-      rows.sort((a, b) => {
-        // 1. 日付の比較（新しい日付を上に）
-        if (a[0] > b[0]) return -1;
-        if (a[0] < b[0]) return 1;
-
-        // 2. 同じ日付の場合、S高をS安より上に
-        const statusA = a[1];
-        const statusB = b[1];
-        const isHighA = statusA.includes("S高");
-        const isHighB = statusB.includes("S高");
-
-        // AがS高でBが違うなら、Aを上(-1)に
-        if (isHighA && !isHighB) return -1;
-        // BがS高でAが違うなら、Bを上(1)に
-        if (!isHighA && isHighB) return 1;
+    <script>
+        // ===============================================
+        // ★★★ 設定エリア（ここだけ書き換えて！） ★★★
+        // ===============================================
         
-        return 0; // どちらも同じなら順序変えない
-      });
-      // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+        // 1. S高履歴のGASウェブアプリURL（あなたのGASのURL）
+        const sHighGasUrl = "https://script.google.com/macros/s/AKfycbyc8KXuA7A_-4_LpTY6RO0Ip9r3ED_g9NtMDgtbzLgpH-hwtouK8db3Zp_8sls-jVVk/exec";
 
-      allData = rows;
+        // 2. 活況銘柄のCSV URL（変更不要）
+        const rankingUrls = {
+            'all': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQSFL74v22ZNoGTNvcwbw9WnYRw9Hdl53zsSOE8Wwy6Jl76aDFxro3RHR-KhULyzLU0f4byxOEmX7Ef/pub?gid=0&single=true&output=csv',
+            'std': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQSFL74v22ZNoGTNvcwbw9WnYRw9Hdl53zsSOE8Wwy6Jl76aDFxro3RHR-KhULyzLU0f4byxOEmX7Ef/pub?gid=1953765914&single=true&output=csv',
+            'grw': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQSFL74v22ZNoGTNvcwbw9WnYRw9Hdl53zsSOE8Wwy6Jl76aDFxro3RHR-KhULyzLU0f4byxOEmX7Ef/pub?gid=1943516156&single=true&output=csv'
+        };
 
-      createMonthTabs(rows);
-      renderTable(headers, rows);
+        // ===============================================
 
-      loading.style.display = 'none';
-      document.getElementById('stockTable').style.display = 'table';
-    })
-    .catch(error => {
-      console.error('Error:', error);
-      document.getElementById('loading').innerHTML = 
-        `読み込みエラーが発生しました。<br><br>` +
-        `Chromeの場合は<br>「広告ブロック(AdBlock)」を<br>OFFにしてみてください。`;
-    });
+        // 初回読み込み
+        window.onload = function() {
+            loadSHighData(); // S高データを読みに行く
+        };
 
-  function createMonthTabs(rows) {
-    const tabsContainer = document.getElementById('monthTabs');
-    const months = new Set();
-    
-    rows.forEach(row => {
-      const dateStr = row[0].toString();
-      const match = dateStr.match(/^(\d{4}\/\d{1,2})/); 
-      if (match) months.add(match[1]);
-    });
+        // タブ切り替え処理
+        function switchTab(mode) {
+            // タブの見た目変更
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
 
-    const allButton = document.createElement('button');
-    allButton.className = 'tab-button active';
-    allButton.textContent = 'すべて';
-    allButton.onclick = () => {
-      updateActiveTab(allButton);
-      const tableBody = document.getElementById('tableBody');
-      tableBody.innerHTML = '';
-      drawRows(allData);
-    };
-    tabsContainer.appendChild(allButton);
+            // 表示エリア切り替え
+            const areaSdaka = document.getElementById('area-sdaka');
+            const areaRanking = document.getElementById('area-ranking');
+            const pageTitle = document.getElementById('pageTitle');
 
-    months.forEach(month => {
-      const btn = document.createElement('button');
-      btn.className = 'tab-button';
-      btn.textContent = month; 
-      btn.onclick = () => {
-        updateActiveTab(btn);
-        const filtered = allData.filter(row => row[0].toString().startsWith(month));
-        const tableBody = document.getElementById('tableBody');
-        tableBody.innerHTML = '';
-        drawRows(filtered);
-      };
-      tabsContainer.appendChild(btn);
-    });
-  }
-
-  function updateActiveTab(clickedBtn) {
-    const buttons = document.querySelectorAll('.tab-button');
-    buttons.forEach(b => b.classList.remove('active'));
-    clickedBtn.classList.add('active');
-  }
-
-  function renderTable(headers, rows) {
-    const tableHead = document.getElementById('tableHead');
-    let headerRow = "<tr>";
-    headers.forEach(text => headerRow += `<th>${text}</th>`);
-    headerRow += "</tr>";
-    tableHead.innerHTML = headerRow;
-    drawRows(rows);
-  }
-
-  function drawRows(rows) {
-    const tableBody = document.getElementById('tableBody');
-    
-    if (rows.length === 0) {
-      tableBody.innerHTML = '<tr><td colspan="6">データがありません</td></tr>';
-      return;
-    }
-
-    rows.forEach((row, index) => { 
-      let tr = document.createElement('tr');
-      
-      if (index > 0) {
-        const currentDate = row[0].toString();
-        const prevDate = rows[index - 1][0].toString();
-        if (currentDate !== prevDate) {
-           tr.classList.add("date-changed");
-        }
-      }
-
-      const stockCode = row[2];
-
-      row.forEach((cell, cellIndex) => {
-        let td = document.createElement('td');
-        let text = cell.toString();
-
-        if (cellIndex === 0) {
-           text = text.replace(/^\d{4}\//, '').replace('(', ' ').replace(')', ''); 
+            if (mode === 'sdaka') {
+                areaSdaka.classList.add('active');
+                areaRanking.classList.remove('active');
+                pageTitle.innerText = "S高・S安 履歴";
+            } else {
+                areaSdaka.classList.remove('active');
+                areaRanking.classList.add('active');
+                pageTitle.innerText = "本日活況銘柄速報";
+                // 活況データを読み込む
+                loadRankingData(mode);
+            }
+            window.scrollTo(0, 0);
         }
 
-        if (text.includes("S高") || text.trim().startsWith("+")) {
-          td.classList.add("text-red");
-        } else if (text.includes("S安") || text.trim().startsWith("-")) {
-          td.classList.add("text-blue");
+        // --- A. S高データを読み込んで表示する関数 ---
+        function loadSHighData() {
+            const table = document.getElementById('table-sdaka');
+            const loading = document.getElementById('loading-sdaka');
+            
+            fetch(sHighGasUrl)
+                .then(response => response.json())
+                .then(data => {
+                    loading.style.display = 'none';
+                    renderSHighTable(data);
+                })
+                .catch(err => {
+                    loading.innerHTML = "読み込み失敗<br>GASのURLを確認してください";
+                    console.error(err);
+                });
         }
 
-        if (cellIndex === 0) {
-            // 日付 + Xアイコン
-            let dateDiv = document.createElement('div');
-            dateDiv.textContent = text;
-            td.appendChild(dateDiv);
+        function renderSHighTable(data) {
+            const table = document.getElementById('table-sdaka');
+            let html = `<thead><tr>
+                <th>日付</th><th>状態</th><th>コード</th><th>銘柄名</th><th>現在値</th><th>前日比</th>
+            </tr></thead><tbody>`;
 
-            let xLink = document.createElement('a');
-            
-            const query = encodeURIComponent(stockCode + " 株");
-            xLink.href = `https://x.com/search?q=${query}&src=typed_query&f=live`;
-            
-            xLink.target = "_blank";
-            xLink.rel = "noopener noreferrer";
+            // データ行のループ (新しい日付順にするため reverse するか、GAS順のままならそのまま)
+            // GASで下に追加しているなら、reverse()すると最新が上に来ます
+            const rows = data.slice(1).reverse(); 
 
-            let xIcon = document.createElement('img');
-            xIcon.src = "x.jpg"; 
-            xIcon.className = "x-icon"; 
-            
-            xLink.appendChild(xIcon);
-            td.appendChild(xLink);
+            rows.forEach(row => {
+                // row: [日付, 状態, コード, 銘柄, 現在値, 前日比]
+                // 状態(S高/S安)の色分け
+                let statusColor = "text-black";
+                if(row[1].includes("S高")) statusColor = "text-red";
+                if(row[1].includes("S安")) statusColor = "text-blue";
 
-        } else if (cellIndex === 2) { 
-            // コード + Yahooアイコン
-            let link = document.createElement('a');
-            link.href = `https://finance.yahoo.co.jp/quote/${stockCode}.T/bbs`;
-            link.target = "_blank";
-            link.rel = "noopener noreferrer";
-            link.textContent = text; 
-            
-            let icon = document.createElement('img');
-            icon.src = "bbs.jpg"; 
-            icon.className = "bbs-icon";
-            link.appendChild(icon);
-            td.appendChild(link);
-            
-        } else if (cellIndex === 3) {
-            // 銘柄名 + 株探アイコン
-            let link = document.createElement('a');
-            link.href = `https://kabutan.jp/stock/?code=${stockCode}`;
-            link.target = "_blank";
-            link.rel = "noopener noreferrer";
-            
-            let icon = document.createElement('img');
-            icon.src = "kabu.jpg"; 
-            icon.className = "kabutan-icon";
-            
-            link.appendChild(icon);
-            link.appendChild(document.createTextNode(text));
-            td.appendChild(link);
-            
-        } else {
-            td.textContent = text;
+                // 前日比の色分け
+                let changeColor = "text-black";
+                if(String(row[5]).includes('+')) changeColor = "text-red";
+                if(String(row[5]).includes('-')) changeColor = "text-blue";
+
+                html += `<tr>
+                    <td class="text-center">${row[0]}</td>
+                    <td class="text-center ${statusColor}">${row[1]}</td>
+                    <td class="text-center">${row[2]}</td>
+                    <td class="text-left">${row[3]}</td>
+                    <td class="text-right">${row[4]}</td>
+                    <td class="text-right ${changeColor}">${row[5]}</td>
+                </tr>`;
+            });
+
+            html += `</tbody>`;
+            table.innerHTML = html;
         }
 
-        if (cellIndex === 4 || cellIndex === 5) { 
-           td.style.textAlign = "right";
+
+        // --- B. 活況銘柄データを読み込んで表示する関数 ---
+        function loadRankingData(tabName) {
+            const url = rankingUrls[tabName];
+            const loading = document.getElementById('loading-ranking');
+            const tableBody = document.getElementById('body-ranking');
+            const tableHeader = document.getElementById('header-ranking');
+            const updateTime = document.getElementById('update-time-ranking');
+
+            loading.style.display = 'block';
+            tableBody.innerHTML = '';
+            tableHeader.innerHTML = '';
+            updateTime.innerText = '';
+
+            fetch(url).then(r => r.text()).then(t => {
+                const rows = parseCSV(t);
+                renderRankingTable(rows);
+                loading.style.display = 'none';
+            });
         }
 
-        tr.appendChild(td);
-      });
-      tableBody.appendChild(tr);
-    });
-  }
-</script>
+        function renderRankingTable(data) {
+            const th = document.getElementById('header-ranking');
+            const tb = document.getElementById('body-ranking');
+            if (data.length === 0) return;
+            
+            const h = data[0];
+            if(data.length > 1) document.getElementById('update-time-ranking').innerText = "最終更新: " + data[1][0];
+            
+            let hHTML = '';
+            for (let i = 1; i < h.length; i++) hHTML += `<th>${h[i]}</th>`;
+            th.innerHTML = hHTML;
 
+            let bHTML = '';
+            for (let i = 1; i < data.length; i++) {
+                const r = data[i]; if (r.length < h.length) continue;
+                bHTML += `<tr>`;
+                for (let j = 1; j < r.length; j++) {
+                    let cls = "text-right text-black";
+                    if (j === 1) cls = "text-center text-black";
+                    if (j === 2) cls = "text-left text-black";
+                    
+                    if (r[j].includes('+')) cls = cls.replace('text-black', 'text-red');
+                    else if (r[j].includes('-') && !r[j].includes('－')) cls = cls.replace('text-black', 'text-blue');
+                    
+                    bHTML += `<td class="${cls}">${r[j]}</td>`;
+                }
+                bHTML += `</tr>`;
+            }
+            tb.innerHTML = bHTML;
+        }
+
+        function parseCSV(text) {
+            const rows = []; let row = []; let cell = ""; let inQuote = false;
+            for (let i = 0; i < text.length; i++) {
+                const c = text[i], n = text[i+1];
+                if (c === '"') { if (inQuote && n === '"') { cell += '"'; i++; } else { inQuote = !inQuote; } }
+                else if (c === ',' && !inQuote) { row.push(cell); cell = ""; }
+                else if ((c === '\r' || c === '\n') && !inQuote) { if (cell||row.length) { row.push(cell); rows.push(row); } row=[]; cell=""; if(c==='\r'&&n==='\n')i++; }
+                else { cell += c; }
+            }
+            if (cell || row.length) { row.push(cell); rows.push(row); }
+            return rows;
+        }
+    </script>
 </body>
 </html>
