@@ -22,7 +22,7 @@
   /* ▼▼▼ タイトルエリアのデザイン ▼▼▼ */
   .title-area {
     display: flex;
-    align-items: center; /* 上下中央揃え */
+    align-items: center;
     margin: 10px 0 15px 5px;
   }
 
@@ -33,20 +33,13 @@
     line-height: 1;
   }
 
-  .title-img-left {
+  .title-img-left, .title-img-right {
     width: 24px;
     height: 24px;
-    margin-right: 8px;
+    margin: 0 8px;
     object-fit: contain;
   }
-
-  .title-img-right {
-    width: 24px;
-    height: 24px;
-    margin-left: 8px;
-    object-fit: contain;
-  }
-  /* ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ */
+  .title-img-left { margin-left: 0; }
 
   /* リンクのデザイン */
   a {
@@ -109,13 +102,43 @@
     vertical-align: middle;
   }
 
-  /* 個別の位置調整 */
   .x-icon { display: block; margin: 4px auto 0; }
   .bbs-icon { margin-left: 5px; }
   .kabutan-icon { margin-right: 5px; }
 
 
-  /* タブボタンのデザイン */
+  /* ▼▼▼ 市場切り替えボタンのデザイン ▼▼▼ */
+  .market-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin: 15px 0 10px 0;
+  }
+
+  .market-btn {
+    flex: 1;
+    max-width: 100px;
+    padding: 8px 0;
+    text-align: center;
+    background-color: #fff;
+    border: 1px solid #999;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    color: #555;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .market-btn.active {
+    background-color: #333;
+    color: #fff;
+    border-color: #333;
+  }
+  /* ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ */
+
+
+  /* 月選択タブのデザイン */
   .tabs {
     display: flex;
     overflow-x: auto;
@@ -182,7 +205,8 @@
     word-wrap: break-word;
   }
 
-  table.stock-table td:nth-child(4) {
+  /* 銘柄名の列 */
+  table.stock-table td:nth-child(3) {
     text-align: left;
     white-space: normal;
     padding-left: 5px;
@@ -199,19 +223,19 @@
   .text-red { color: #d32f2f !important; font-weight: bold; }
   .text-blue { color: #1976d2 !important; font-weight: bold; }
 
+  /* スマホ表示調整 */
   @media screen and (max-width: 600px) {
     table.stock-table { font-size: 11px; }
-    table.stock-table td:nth-child(1) {
-      white-space: nowrap;
-      font-size: 10px;
-      letter-spacing: -0.5px;
-    }
-    table.stock-table th:nth-child(1) { width: 15%; }
-    table.stock-table th:nth-child(2) { width: 9%; }
-    table.stock-table th:nth-child(3) { width: 14%; }
-    table.stock-table th:nth-child(4) { width: auto; }
-    table.stock-table th:nth-child(5) { width: 15%; }
-    table.stock-table th:nth-child(6) { width: 13%; }
+    /* 日付 */
+    table.stock-table th:nth-child(1), table.stock-table td:nth-child(1) { width: 15%; }
+    /* コード */
+    table.stock-table th:nth-child(2), table.stock-table td:nth-child(2) { width: 14%; }
+    /* 銘柄名 */
+    table.stock-table th:nth-child(3), table.stock-table td:nth-child(3) { width: auto; }
+    /* 現在値 */
+    table.stock-table th:nth-child(4), table.stock-table td:nth-child(4) { width: 16%; }
+    /* 前日比 */
+    table.stock-table th:nth-child(5), table.stock-table td:nth-child(5) { width: 16%; }
   }
 
   #loading {
@@ -229,7 +253,6 @@
   <h3>ストップ高・ストップ安 履歴</h3>
   <img src="ss.jpg" class="title-img-right">
 </div>
-<div class="tabs" id="monthTabs"></div>
 
 <div class="legend-area">
   <div class="legend-item">
@@ -243,225 +266,100 @@
   </div>
 </div>
 
+<div class="market-tabs">
+    <div class="market-btn active" id="btn-all" onclick="switchMarket('all')">全市場</div>
+    <div class="market-btn" id="btn-std" onclick="switchMarket('std')">スタンダード</div>
+    <div class="market-btn" id="btn-grw" onclick="switchMarket('grw')">グロース</div>
+</div>
+<div class="tabs" id="monthTabs"></div>
+
 <div class="stock-table-container">
   <div id="loading">データを読み込んでいます...</div>
   <table class="stock-table" id="stockTable" style="display:none;">
-    <thead id="tableHead"></thead>
+    <thead id="tableHead">
+        <tr>
+            <th>日付</th>
+            <th>コード</th>
+            <th>銘柄名</th>
+            <th>株価</th>
+            <th>前日比</th>
+        </tr>
+    </thead>
     <tbody id="tableBody"></tbody>
   </table>
 </div>
 
 <script>
-  // ▼▼▼ あなたのGAS URL ▼▼▼
-  const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxG748E3HJpiUACWzkbOlekmXFsEhxB-c6zJI_XI50lbzigtm2S8LrkpRS3pUHcm7Kn/exec"; 
+  // ▼▼▼ 設定エリア：スプレッドシート情報 ▼▼▼
+  const SHEET_ID = "1DiJXYQ8FlHk5_2GEJDmVET8gmHvqwmgTeUXWo5oCmRs"; 
+  const SHEET_GIDS = {
+      all: "0",          // data
+      std: "1953765914", // data_std
+      grw: "1943516156"  // data_grw
+  };
   // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
-  let allData = [];
+  let allData = []; // 現在読み込んでいるシートの全データ
+  let currentMarket = 'all';
 
-  fetch(GAS_API_URL)
-    .then(response => {
-       if (!response.ok) {
-         throw new Error("通信エラー: " + response.status);
-       }
-       return response.json();
-    })
-    .then(data => {
-      const loading = document.getElementById('loading');
+  // 初期ロード
+  window.onload = function() {
+      switchMarket('all');
+  };
+
+  function switchMarket(type) {
+      currentMarket = type;
+
+      // ボタンの見た目切替
+      document.querySelectorAll('.market-btn').forEach(btn => btn.classList.remove('active'));
+      document.getElementById(`btn-${type}`).classList.add('active');
+
+      // ローディング表示
+      document.getElementById('stockTable').style.display = 'none';
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('loading').textContent = "読み込み中...";
       
-      if (!data || data.length === 0) {
-        loading.textContent = "データがありません";
-        return;
-      }
+      // データ取得開始
+      loadSheetData(type);
+  }
 
-      const headers = data[0];
-      let rows = data.slice(1);
-      
-      // ▼▼▼ 並び替え処理：日付順 ＞ S高優先 ▼▼▼
-      rows.sort((a, b) => {
-        // 1. 日付の比較（新しい日付を上に）
-        if (a[0] > b[0]) return -1;
-        if (a[0] < b[0]) return 1;
+  async function loadSheetData(type) {
+    const gid = SHEET_GIDS[type];
+    // Web公開されたCSVを取得するURL
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}`;
 
-        // 2. 同じ日付の場合、S高をS安より上に
-        const statusA = a[1];
-        const statusB = b[1];
-        const isHighA = statusA.includes("S高");
-        const isHighB = statusB.includes("S高");
-
-        // AがS高でBが違うなら、Aを上(-1)に
-        if (isHighA && !isHighB) return -1;
-        // BがS高でAが違うなら、Bを上(1)に
-        if (!isHighA && isHighB) return 1;
+    try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error("通信エラー: " + response.status);
+        const text = await response.text();
         
-        return 0; // どちらも同じなら順序変えない
-      });
-      // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+        parseAndRender(text);
 
-      allData = rows;
-
-      createMonthTabs(rows);
-      renderTable(headers, rows);
-
-      loading.style.display = 'none';
-      document.getElementById('stockTable').style.display = 'table';
-    })
-    .catch(error => {
-      console.error('Error:', error);
-      document.getElementById('loading').innerHTML = 
-        `読み込みエラーが発生しました。<br><br>` +
-        `Chromeの場合は<br>「広告ブロック(AdBlock)」を<br>OFFにしてみてください。`;
-    });
-
-  function createMonthTabs(rows) {
-    const tabsContainer = document.getElementById('monthTabs');
-    const months = new Set();
-    
-    rows.forEach(row => {
-      const dateStr = row[0].toString();
-      const match = dateStr.match(/^(\d{4}\/\d{1,2})/); 
-      if (match) months.add(match[1]);
-    });
-
-    const allButton = document.createElement('button');
-    allButton.className = 'tab-button active';
-    allButton.textContent = 'すべて';
-    allButton.onclick = () => {
-      updateActiveTab(allButton);
-      const tableBody = document.getElementById('tableBody');
-      tableBody.innerHTML = '';
-      drawRows(allData);
-    };
-    tabsContainer.appendChild(allButton);
-
-    months.forEach(month => {
-      const btn = document.createElement('button');
-      btn.className = 'tab-button';
-      btn.textContent = month; 
-      btn.onclick = () => {
-        updateActiveTab(btn);
-        const filtered = allData.filter(row => row[0].toString().startsWith(month));
-        const tableBody = document.getElementById('tableBody');
-        tableBody.innerHTML = '';
-        drawRows(filtered);
-      };
-      tabsContainer.appendChild(btn);
-    });
-  }
-
-  function updateActiveTab(clickedBtn) {
-    const buttons = document.querySelectorAll('.tab-button');
-    buttons.forEach(b => b.classList.remove('active'));
-    clickedBtn.classList.add('active');
-  }
-
-  function renderTable(headers, rows) {
-    const tableHead = document.getElementById('tableHead');
-    let headerRow = "<tr>";
-    headers.forEach(text => headerRow += `<th>${text}</th>`);
-    headerRow += "</tr>";
-    tableHead.innerHTML = headerRow;
-    drawRows(rows);
-  }
-
-  function drawRows(rows) {
-    const tableBody = document.getElementById('tableBody');
-    
-    if (rows.length === 0) {
-      tableBody.innerHTML = '<tr><td colspan="6">データがありません</td></tr>';
-      return;
+    } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('loading').innerHTML = 
+          `データの読み込みに失敗しました。<br><br>` +
+          `通信環境を確認するか、時間をおいて試してください。`;
     }
+  }
 
-    rows.forEach((row, index) => { 
-      let tr = document.createElement('tr');
-      
-      if (index > 0) {
-        const currentDate = row[0].toString();
-        const prevDate = rows[index - 1][0].toString();
-        if (currentDate !== prevDate) {
-           tr.classList.add("date-changed");
-        }
+  function parseAndRender(csvText) {
+      // CSVをパース (簡易的なカンマ区切り。セル内のカンマには非対応だが、株価データなら通常OK)
+      const lines = csvText.trim().split('\n');
+      if (lines.length < 2) {
+           document.getElementById('loading').textContent = "データがありません";
+           return;
       }
 
-      const stockCode = row[2];
+      // 1行目はヘッダーなのでスキップし、2行目以降をデータとして配列化
+      // 想定CSV列: [0]取得日, [1]コード, [2]銘柄名, [3]約定回数, [4]前日比(%), [5]前日比, [6]株価
+      const dataRows = [];
+      for(let i = 1; i < lines.length; i++) {
+          // ダブルクォーテーションを除去して分割
+          const row = lines[i].split(',').map(cell => cell.replace(/^"|"$/g, ''));
+          if(row.length > 1) dataRows.push(row);
+      }
 
-      row.forEach((cell, cellIndex) => {
-        let td = document.createElement('td');
-        let text = cell.toString();
-
-        if (cellIndex === 0) {
-           text = text.replace(/^\d{4}\//, '').replace('(', ' ').replace(')', ''); 
-        }
-
-        if (text.includes("S高") || text.trim().startsWith("+")) {
-          td.classList.add("text-red");
-        } else if (text.includes("S安") || text.trim().startsWith("-")) {
-          td.classList.add("text-blue");
-        }
-
-        if (cellIndex === 0) {
-            // 日付 + Xアイコン
-            let dateDiv = document.createElement('div');
-            dateDiv.textContent = text;
-            td.appendChild(dateDiv);
-
-            let xLink = document.createElement('a');
-            
-            const query = encodeURIComponent(stockCode + " 株");
-            xLink.href = `https://x.com/search?q=${query}&src=typed_query&f=live`;
-            
-            xLink.target = "_blank";
-            xLink.rel = "noopener noreferrer";
-
-            let xIcon = document.createElement('img');
-            xIcon.src = "x.jpg"; 
-            xIcon.className = "x-icon"; 
-            
-            xLink.appendChild(xIcon);
-            td.appendChild(xLink);
-
-        } else if (cellIndex === 2) { 
-            // コード + Yahooアイコン
-            let link = document.createElement('a');
-            link.href = `https://finance.yahoo.co.jp/quote/${stockCode}.T/bbs`;
-            link.target = "_blank";
-            link.rel = "noopener noreferrer";
-            link.textContent = text; 
-            
-            let icon = document.createElement('img');
-            icon.src = "bbs.jpg"; 
-            icon.className = "bbs-icon";
-            link.appendChild(icon);
-            td.appendChild(link);
-            
-        } else if (cellIndex === 3) {
-            // 銘柄名 + 株探アイコン
-            let link = document.createElement('a');
-            link.href = `https://kabutan.jp/stock/?code=${stockCode}`;
-            link.target = "_blank";
-            link.rel = "noopener noreferrer";
-            
-            let icon = document.createElement('img');
-            icon.src = "kabu.jpg"; 
-            icon.className = "kabutan-icon";
-            
-            link.appendChild(icon);
-            link.appendChild(document.createTextNode(text));
-            td.appendChild(link);
-            
-        } else {
-            td.textContent = text;
-        }
-
-        if (cellIndex === 4 || cellIndex === 5) { 
-           td.style.textAlign = "right";
-        }
-
-        tr.appendChild(td);
-      });
-      tableBody.appendChild(tr);
-    });
-  }
-</script>
-
-</body>
-</html>
+      // 日付の降順（新しい順）にソート
+      dataRows.sort((a, b) => {
+          if (a[0] < b[0])
